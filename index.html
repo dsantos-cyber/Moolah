@@ -265,8 +265,10 @@ const goalOf=id=>(settings.goals&&settings.goals[id])||1000000;
 
 // ---------- calculations ----------
 // money lent through the Lending tab, counted in the month it went out
+function ledgerMonth(L,k){if(L.byMonth&&k in L.byMonth)return L.byMonth[k]||0;return (L.entries||[]).filter(e=>e.kind==='lent'&&e.date&&e.date.slice(0,7)===k).reduce((s,e)=>s+e.amount,0)}
 function lentIn(k){const out=[];for(const [id,L] of Object.entries(loans||{})){
-    if(L.type==='ledger'){(L.entries||[]).forEach(e=>{if(e.kind==='lent'&&e.date&&e.date.slice(0,7)===k)out.push({id,name:`${L.borrower} · ${e.label}`,amount:e.amount})})}
+    // running tabs: the amount set for the month in Month › Lending, else the tab's dated "lent" entries
+    if(L.type==='ledger'){const v=ledgerMonth(L,k);if(v)out.push({id,name:`${L.borrower} · running tab`,amount:v,ledger:true})}
     else if(L.lentOn===k)out.push({id,name:`${L.borrower} · ${L.item||L.group||'Loan'}`,amount:L.principal||0})}
   return out}
 function monthCalc(k){
@@ -458,7 +460,8 @@ function viewMonth(){
     <div class="scroll"><table><thead><tr><th>Category</th><th>Budget</th><th>Actual</th><th>Remaining</th></tr></thead><tbody>
     ${list.map(x=>{const it=d.items?.[x.id]||{};const rem=(it.budget||0)-(it.actual||0);
       return `<tr><td class="name">${esc(x.name)}</td><td>${numInput('b-'+x.id,it.budget,`data-f="item" data-c="${x.id}" data-k="budget" aria-label="${esc(x.name)} budget"`)}</td><td>${numInput('a-'+x.id,it.actual,`data-f="item" data-c="${x.id}" data-k="actual" aria-label="${esc(x.name)} actual"`)}</td><td class="${rem<0?'neg':''}">${fmt(rem)}${rem<0?'<span class="chip">over</span>':''}</td></tr>`}).join('')}
-    ${G.id==='lending'?lentIn(k).map(x=>`<tr><td class="name">${esc(x.name)}<br><a class="muted" style="font-size:12px" href="#lending">From the Lending tab</a></td><td></td><td>${fmt(x.amount)}</td><td></td></tr>`).join(''):''}
+    ${G.id==='lending'?Object.entries(loans||{}).filter(([,L])=>L.type==='ledger').map(([id,L])=>`<tr><td class="name">${esc(L.borrower)} · running tab<br><a class="muted" style="font-size:12px" href="#lending">Lent this month, net</a></td><td></td><td>${numInput('lm-'+id,ledgerMonth(L,k)||'',`data-f="lendmonth" data-c="${id}" aria-label="${esc(L.borrower)} lent in ${label(k)}"`)}</td><td></td></tr>`).join(''):''}
+    ${G.id==='lending'?lentIn(k).filter(x=>!x.ledger).map(x=>`<tr><td class="name">${esc(x.name)}<br><a class="muted" style="font-size:12px" href="#lending">From the Lending tab</a></td><td></td><td>${fmt(x.amount)}</td><td></td></tr>`).join(''):''}
     </tbody><tfoot><tr><td>Subtotal</td><td>${fmt(t.b)}</td><td>${fmt(t.a)}</td>${G.id==='lending'?'<td></td>':`<td class="${t.b-t.a<0?'neg':''}">${fmt(t.b-t.a)}</td>`}</tr></tfoot></table></div>
     ${canWrite?`<form class="addcat" data-g="${G.id}"><input class="txt" id="new-${G.id}" placeholder="New category in ${esc(G.short)}" aria-label="New category name"><button type="submit">Add</button></form>`:''}</section>`};
   return `
@@ -1011,6 +1014,7 @@ function wire(){
 function onNum(e){const el=e.target;let v;try{v=calc(el.value)}catch(_){el.value=el.dataset.orig||'';setStatus("That amount didn't add up. Use numbers with + − × ÷.",true);return}
   const f=el.dataset.f,c=el.dataset.c,k=el.dataset.k;el.value=editVal(v);el.dataset.orig=editVal(v);
   if(f==='plan'){const P=settings.plan;if(c==='income')P.expectedIncome=v;else if(c==='cap'){const rs=clone(capRules());if(rs.length)rs[rs.length-1].amount=v;else rs.push({from:NOWKEY,amount:v,carry:false});settings.wantsCaps=rs}else if(c==='share')P.dhShare=Math.min(Math.max(v/100,0),1);else{const ln=P.lines.find(l=>l.id===c);if(ln)ln.amount=v}saveSettings();render();return}
+  if(f==='lendmonth'){const L=loans[c];if(!L)return;L.byMonth={...(L.byMonth||{}),[curMonth]:v};saveLoan(c);render();return}
   if(f==='month'){const d=monthDoc(curMonth);if(el.value.trim()==='')delete d[c];else d[c]=v;saveMonth(curMonth);render();return}
   if(f==='actual'){settings.actualSavings={amount:v,date:TODAY};saveSettings();render();return}
   if(f==='goal'){settings.goals={...(settings.goals||{}),[c]:v||1000000};saveSettings();render();return}
