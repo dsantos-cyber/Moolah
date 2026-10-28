@@ -815,10 +815,10 @@ function viewBigPlans(){
   </div>`;
 }
 // photos and files live in their own docs (files/<id>); photos are shrunk so each stays under Firestore's 1 MB limit
-const fileCache={};
-function shrinkImage(file){return new Promise((res,rej)=>{const img=new Image(),u=URL.createObjectURL(file);img.onload=()=>{const m=1600,sc=Math.min(1,m/Math.max(img.width,img.height));
+const fileCache={},IMG_MAX=900000,FILE_MAX=700000;
+function shrinkImage(file){return new Promise((res,rej)=>{const img=new Image(),u=URL.createObjectURL(file);img.onload=()=>{const m=IMG_MAX<400000?1100:1600,sc=Math.min(1,m/Math.max(img.width,img.height));
   const c=document.createElement('canvas');c.width=Math.round(img.width*sc);c.height=Math.round(img.height*sc);c.getContext('2d').drawImage(img,0,0,c.width,c.height);URL.revokeObjectURL(u);
-  let q=.82,d=c.toDataURL('image/jpeg',q);while(d.length>900000&&q>.3){q-=.12;d=c.toDataURL('image/jpeg',q)}res(d)};img.onerror=()=>{URL.revokeObjectURL(u);rej(new Error('img'))};img.src=u})}
+  let q=.82,d=c.toDataURL('image/jpeg',q);while(d.length>IMG_MAX&&q>.3){q-=.12;d=c.toDataURL('image/jpeg',q)}res(d)};img.onerror=()=>{URL.revokeObjectURL(u);rej(new Error('img'))};img.src=u})}
 const readData=f=>new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=rej;r.readAsDataURL(f)});
 async function fileData(id){if(fileCache[id])return fileCache[id];const s=await db.doc('files/'+id).get();return fileCache[id]=s.exists?s.data().data:null}
 function wireBigPlans(){
@@ -831,7 +831,7 @@ function wireBigPlans(){
   app.querySelectorAll('[data-bpfrm]').forEach(b=>b.addEventListener('click',()=>{const x=bucket(b.dataset.bpfrm);if(!x)return;const fid=b.dataset.fid;x.files=(x.files||[]).filter(f=>f.id!==fid);saveSettings();render();db.doc('files/'+fid).delete().catch(()=>{})}));
   app.querySelectorAll('[data-bpfile]').forEach(inp=>inp.addEventListener('change',async()=>{const x=bucket(inp.dataset.bpfile);if(!x)return;let n=0;
     for(const f of inp.files){try{setStatus(`Uploading ${f.name}…`);const isImg=/^image\//.test(f.type)&&!/svg/.test(f.type);
-        if(!isImg&&f.size>700000){setStatus(`${f.name} is too big (max 700 KB for files; photos are shrunk automatically)`,true);continue}
+        if(!isImg&&f.size>FILE_MAX){setStatus(`${f.name} is too big (max ${Math.round(FILE_MAX/1000)} KB for files; photos are shrunk automatically)`,true);continue}
         const data=isImg?await shrinkImage(f):await readData(f);const id='f'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
         await db.doc('files/'+id).set({name:f.name,type:isImg?'image/jpeg':f.type||'application/octet-stream',bucket:x.id,data,added:TODAY});fileCache[id]=data;
         x.files=(x.files||[]).concat([{id,name:f.name,type:isImg?'image/jpeg':f.type,added:TODAY}]);n++}
