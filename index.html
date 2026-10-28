@@ -1051,7 +1051,10 @@ function importView(){
       for(const [col,docs] of Object.entries(data))for(const [id,body] of Object.entries(docs||{})){if(!['months','loans','settings'].includes(col))continue;await db.doc(col+'/'+id).set(body);n++}
       setStatus(`Imported ${n} records`)}catch(err){setStatus("That file couldn't be read. Choose the moolah-data .json file.",true)}});
 }
-function exportData(){const out={months,loans,settings:{main:settings}};const blob=new Blob([JSON.stringify(out,null,2)],{type:'application/json'});
+async function exportData(){const out={months,loans,settings:{main:settings}};const blob=new Blob([JSON.stringify(out,null,2)],{type:'application/json'});
+  // on phones the share sheet is the reliable way to save a file from a home-screen app
+  const file=new File([blob],`moolah-data-${TODAY}.json`,{type:'application/json'});
+  if(matchMedia('(pointer:coarse)').matches&&navigator.canShare&&navigator.canShare({files:[file]})){try{await navigator.share({files:[file],title:'Moolah backup'});return}catch(e){if(e&&e.name==='AbortError')return}}
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`moolah-data-${TODAY}.json`;document.body.appendChild(a);a.click();a.remove()}
 (async()=>{
   route();
