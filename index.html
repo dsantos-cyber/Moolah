@@ -473,6 +473,7 @@ function viewMonth(){
     </section>
     <section class="panel"><h3>Spending mix</h3><p class="hint" style="margin:0">Share of this month's income. Marks show the 50 / 30 / 20 guide.</p>
       <div class="mix">${mix.map(([n,v,g,col])=>{const p=c.incA?v/c.incA:0;return `<div class="mixrow"><span>${n}</span><span class="track"><i style="width:${Math.min(Math.max(p,0),1)*100}%;background:var(${col})"></i><u style="left:${g*100}%"></u></span><span style="text-align:right" class="${p>g&&n!=='Savings'?'neg':''}">${c.incA?pct(p):'—'}</span></div>`}).join('')}</div>
+      <div class="row" style="justify-content:space-between;gap:10px;border-top:1px solid var(--line);padding-top:10px;margin-top:10px"><span><b>Household contribution</b><br><span class="hint">${label(k)}</span></span>${numInput('hh',d.household,'data-f="month" data-c="household" aria-label="Household contribution"')}</div>
     </section>
   </div>
   ${GROUPS.map(groupTable).join('')}
@@ -987,6 +988,7 @@ function wire(){
 function onNum(e){const el=e.target;let v;try{v=calc(el.value)}catch(_){el.value=el.dataset.orig||'';setStatus("That amount didn't add up. Use numbers with + − × ÷.",true);return}
   const f=el.dataset.f,c=el.dataset.c,k=el.dataset.k;el.value=editVal(v);el.dataset.orig=editVal(v);
   if(f==='plan'){const P=settings.plan;if(c==='income')P.expectedIncome=v;else if(c==='cap'){const rs=clone(capRules());if(rs.length)rs[rs.length-1].amount=v;else rs.push({from:NOWKEY,amount:v,carry:false});settings.wantsCaps=rs}else if(c==='share')P.dhShare=Math.min(Math.max(v/100,0),1);else{const ln=P.lines.find(l=>l.id===c);if(ln)ln.amount=v}saveSettings();render();return}
+  if(f==='month'){const d=monthDoc(curMonth);if(el.value.trim()==='')delete d[c];else d[c]=v;saveMonth(curMonth);render();return}
   if(f==='actual'){settings.actualSavings={amount:v,date:TODAY};saveSettings();render();return}
   if(f==='goal'){settings.goals={...(settings.goals||{}),[c]:v||1000000};saveSettings();render();return}
   const d=monthDoc(curMonth);
