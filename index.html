@@ -766,15 +766,17 @@ function bpInflows(){const out=[];for(const k of KEYS){const ci=capInfo(k);if(!c
   // only months that have ended; a month with nothing entered still counts once it's over
   out.push({k,cap:ci.cap,wants:monthCalc(k).wants,in:Math.max(0,ci.cap-monthCalc(k).wants)})}return out}
 function bpState(){const B=settings.bigPlans||{buckets:[],spends:[]};const inflows=bpInflows();const total=inflows.reduce((s,r)=>s+r.in,0);
-  const w=B.buckets.reduce((s,b)=>s+(b.share??1),0)||1;
-  const rows=B.buckets.map(b=>{const alloc=total*(b.share??1)/w,spent=(B.spends||[]).filter(x=>x.bucket===b.id).reduce((s,x)=>s+x.amount,0);return {...b,alloc,spent,bal:alloc-spent}});
+  // each month's money is split only between the plans that existed that month
+  const start=b=>b.from||B.start||'2026-11',alloc={};B.buckets.forEach(b=>alloc[b.id]=0);
+  for(const r of inflows){const el=B.buckets.filter(b=>start(b)<=r.k),w=el.reduce((s,b)=>s+(b.share??1),0);if(w)el.forEach(b=>alloc[b.id]+=r.in*(b.share??1)/w)}
+  const rows=B.buckets.map(b=>{const alloc_=alloc[b.id],spent=(B.spends||[]).filter(x=>x.bucket===b.id).reduce((s,x)=>s+x.amount,0);return {...b,alloc:alloc_,spent,bal:alloc_-spent}});
   return {B,inflows,total,rows,spent:rows.reduce((s,r)=>s+r.spent,0)}}
 function viewBigPlans(){
   const {B,inflows,total,rows,spent}=bpState();const ci=capInfo(NOWKEY),cw=monthCalc(NOWKEY).wants;
   const w=B.buckets.reduce((s,b)=>s+(b.share??1),0)||1;
   return `
   <section><div><span class="eyebrow">Big Plans Fund</span><h2>${fmt0(total-spent)} saved for big plans</h2></div>
-    <p class="hint" style="margin:4px 0 0">Whatever you don't use of your ${fmt0(ci.base||13100)} wants cap goes here at the end of each month, from ${label(B.start||'2026-11')}. It's split between your plans by their shares.</p>
+    <p class="hint" style="margin:4px 0 0">Whatever you don't use of your ${fmt0(ci.base||13100)} wants cap goes here at the end of each month, from ${label(B.start||'2026-11')}. It's split between your plans by their shares. A plan you add later only gets money from the month you add it.</p>
     <div class="kpis">
       ${kpi('Added so far',fmt0(total),`${inflows.length} finished month${inflows.length===1?'':'s'}`,'pos')}
       ${kpi('Used',fmt0(spent),`${(B.spends||[]).length} purchase${(B.spends||[]).length===1?'':'s'}`)}
@@ -785,14 +787,14 @@ function viewBigPlans(){
     <div class="row" style="justify-content:space-between;gap:8px"><h3>${esc(r.name)}</h3>${canWrite&&!r.spent?`<button class="link" data-bprm="${r.id}">Remove</button>`:''}</div>
     <b style="font:700 22px/1.2 var(--display)" class="${r.bal<0?'neg':''}">${fmt0(r.bal)}</b>
     ${goal?`<span class="track"><i style="width:${Math.min(p,1)*100}%;background:var(--s6)"></i></span><span class="hint">${pct(p)} of the ${fmt0(goal)} goal${p>=1?' 🎉':''}</span>`:''}
-    <span class="hint">${pct((r.share??1)/w)} of the fund · ${fmt0(r.alloc)} in${r.spent?` · ${fmt0(r.spent)} used`:''}</span>
+    <span class="hint">${pct((r.share??1)/w)} of new money · ${fmt0(r.alloc)} in${r.from&&r.from>(B.start||'2026-11')?` since ${label(r.from)}`:''}${r.spent?` · ${fmt0(r.spent)} used`:''}</span>
     ${canWrite?`<div class="row" style="gap:8px;flex-wrap:wrap"><label class="hint">Goal ₱ <input class="txt" style="width:110px" data-bpgoal="${r.id}" data-calc inputmode="text" value="${r.target?editVal(r.target):''}" placeholder="optional"></label>
       <label class="hint">Share <input class="txt" style="width:60px" data-bpshare="${r.id}" inputmode="numeric" value="${r.share??1}"></label></div>
       ${bpSpendFor===r.id?`<form class="payform" data-bpspend="${r.id}" style="display:grid;gap:6px"><input class="txt" id="bps-what" placeholder="What did you buy?" required><input class="txt" id="bps-amt" data-calc inputmode="text" placeholder="Amount ₱" required><input class="txt" id="bps-date" type="date" value="${TODAY}"><div class="row" style="gap:8px"><button class="primary" type="submit">Save</button><button type="button" class="link" data-bpcancel>Cancel</button></div></form>`
         :`<button type="button" data-bpuse="${r.id}">Use money from this</button>`}`:''}
   </section>`}).join('')}</div>
   ${canWrite?`<section class="panel"><h3>Add a plan</h3><form class="addcat" id="bpadd" style="display:flex;gap:8px;flex-wrap:wrap"><input class="txt" id="bp-name" placeholder="e.g. New car, Japan trip" required style="flex:1;min-width:180px"><button class="primary" type="submit">Add</button></form>
-    <p class="hint">Share sets how the fund is split: two plans with share 1 get half each; a plan with share 2 gets twice as much as one with share 1.</p></section>`:''}
+    <p class="hint">Share sets how each month's money is split: two plans with share 1 get half each; a plan with share 2 gets twice as much as one with share 1.</p></section>`:''}
   <div class="grid2">
     <section class="panel"><h3>Money in, month by month</h3>${inflows.length?`<div class="scroll"><table><thead><tr><th>Month</th><th>Wants cap</th><th>Spent</th><th>To the fund</th></tr></thead><tbody>
       ${inflows.map(r=>`<tr><td>${label(r.k)}</td><td>${fmt0(r.cap)}</td><td class="${r.wants>r.cap?'neg':''}">${fmt0(r.wants)}</td><td class="pos">${fmt0(r.in)}</td></tr>`).join('')}</tbody></table></div>`:`<p class="hint">Nothing yet. ${label(B.start||'2026-11')} adds to the fund once it's over.</p>`}</section>
@@ -811,7 +813,7 @@ function wireBigPlans(){
   app.querySelectorAll('[data-bpgoal]').forEach(el=>el.addEventListener('change',()=>{const x=B.buckets.find(b=>b.id===el.dataset.bpgoal);if(!x)return;x.target=num(el.value)||0;saveSettings();render()}));
   app.querySelectorAll('[data-bpshare]').forEach(el=>el.addEventListener('change',()=>{const x=B.buckets.find(b=>b.id===el.dataset.bpshare);if(!x)return;x.share=Math.max(0,num(el.value));saveSettings();render()}));
   const f=document.getElementById('bpadd');if(f)f.addEventListener('submit',e=>{e.preventDefault();const name=document.getElementById('bp-name').value.trim();if(!name)return;
-    B.buckets.push({id:'b'+Date.now().toString(36),name,share:1,target:0});saveSettings();render();setStatus(`Added ${name}`)});
+    B.buckets.push({id:'b'+Date.now().toString(36),name,share:1,target:0,from:NOWKEY});saveSettings();render();setStatus(`Added ${name}`)});
 }
 // one-time update (Oct 2026): ₱13,100 wants cap from Nov 2026, ₱3,000 shopping limit, unspent cap goes to the Big Plans Fund
 function migrateSettings(){
