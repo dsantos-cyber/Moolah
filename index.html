@@ -470,7 +470,7 @@ function viewMonth(){
   ${capOf(k)&&c.wants>capOf(k)?`<div class="warn" role="alert"><b>Wants are over your cap.</b> You've spent ${fmt(c.wants)} on wants in ${label(k)}, which is ${fmt(c.wants-capOf(k))} over your ${fmt0(capOf(k))} limit for the month${capInfo(k).carry?` (${fmt0(capInfo(k).base)} plus ${fmt0(capInfo(k).carry)} carried over)`:''}.</div>`:''}
   <div class="kpis">
     ${kpi('Income',fmt(c.incA),`expected ${fmt(c.incE)}`)}
-    ${kpi('Spent',fmt(c.needs+c.wants),`${fmt(c.needs)} needs · ${fmt(c.wants)} wants`+(c.lending?` · ${fmt(c.lending)} lent out`:'')+(capOf(k)?` (cap ${fmt0(capOf(k))})`:''))}
+    ${kpi('Spent',fmt(c.needs+c.wants+c.lending),`${fmt(c.needs)} needs · ${fmt(c.wants)} wants`+(c.lending?` · ${fmt(c.lending)} lent out`:'')+(capOf(k)?` (cap ${fmt0(capOf(k))})`:''))}
     ${kpi('Saved',fmt(S.dep),'net deposits to your goal accounts',S.dep<0?'neg':'')}
     ${kpi('Left over',fmt(left),left<0?'overspent: came from money already saved':'after spending and savings',left<0?'neg':'pos')}
   </div>
