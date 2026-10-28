@@ -874,6 +874,11 @@ function migrateSettings2(){
   for(const [id,k] of Object.entries(link)){const L=loans[id];if(!L||L.lentOn)continue;L.lentOn=k;saveLoan(id);sums[k]=(sums[k]||0)+(L.principal||0)}
   for(const [k,v] of Object.entries(sums)){const it=months[k]?.items?.['money-lent'];if(it&&Math.abs((it.actual||0)-v)<1){delete months[k].items['money-lent'];saveMonth(k)}}
   settings.mig=2;saveSettings()}
+// one-time: the June "Debt AE 18000" note line was taken out of the tally, so drop it from the notes too
+function migrateSettings3(){
+  if(!canWrite||(settings.mig||0)>=3||(settings.mig||0)<2)return;
+  const d=months['2026-06'];if(d&&d.notes){const n=d.notes.replace(/Debt AE\s*-?\s*18,?000\s*;?\s*/i,'').replace(/^Other:\s*$/m,'').replace(/\n{2,}/g,'\n').trim();if(n!==d.notes){d.notes=n;saveMonth('2026-06')}}
+  settings.mig=3;saveSettings()}
 
 // ---------- wants cap & salary budget ----------
 let wantsMonth='all';
@@ -1043,7 +1048,7 @@ function exportData(){const out={months,loans,settings:{main:settings}};const bl
     let gotM=false,gotS=false,gotL=false,sExists=false;
     const ready=()=>{if(!(gotM&&gotS&&gotL)||loaded){if(loaded)render();return}
       if(!sExists&&!Object.keys(months).length){importView();return}
-      loaded=true;migrateSettings();migrateSettings2();if(!KEYS.some(hasData))curMonth=KEYS.includes(NOWKEY)?NOWKEY:KEYS[0];render()};
+      loaded=true;migrateSettings();migrateSettings2();migrateSettings3();if(!KEYS.some(hasData))curMonth=KEYS.includes(NOWKEY)?NOWKEY:KEYS[0];render()};
     unsub.push(db.collection('months').onSnapshot(snap=>{const next={};for(const doc of snap.docs){if(saving['months/'+doc.id])next[doc.id]=months[doc.id];else next[doc.id]=clone(doc.data())}
       for(const p in saving)if(p.startsWith('months/')){const id=p.slice(7);next[id]=months[id]}months=next;gotM=true;ready()},
       e=>{setStatus('Live updates stopped. Reload to reconnect.',true)}));
