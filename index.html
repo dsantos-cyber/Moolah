@@ -266,6 +266,12 @@ const goalOf=id=>(settings.goals&&settings.goals[id])||1000000;
 // ---------- calculations ----------
 // money lent through the Lending tab, counted in the month it went out
 function ledgerMonth(L,k){if(L.byMonth&&k in L.byMonth)return L.byMonth[k]||0;return (L.entries||[]).filter(e=>e.kind==='lent'&&e.date&&e.date.slice(0,7)===k).reduce((s,e)=>s+e.amount,0)}
+// money paid back to you in a month, from every loan in the Lending tab
+function collectedIn(k){const out=[];for(const [id,L] of Object.entries(loans||{})){const who=`${L.borrower} · ${L.item||L.group||'Loan'}`;
+    if(L.type==='ledger')(L.entries||[]).forEach(e=>{if(e.kind!=='lent'&&e.date&&e.date.slice(0,7)===k)out.push({name:`${L.borrower} · ${e.label}`,amount:e.amount,date:e.date})});
+    else if(L.type==='flexible')(L.payments||[]).forEach(x=>{if(x.date.slice(0,7)===k)out.push({name:who,amount:x.amount,date:x.date})});
+    else (L.installments||[]).forEach(x=>{if(x.paid&&x.paidOn&&x.paidOn.slice(0,7)===k)out.push({name:who,amount:x.amount,date:x.paidOn})})}
+  return out.sort((a,b)=>a.date.localeCompare(b.date))}
 function lentIn(k){const out=[];for(const [id,L] of Object.entries(loans||{})){
     // running tabs: the amount set for the month in Month › Lending, else the tab's dated "lent" entries
     if(L.type==='ledger'){const v=ledgerMonth(L,k);if(v)out.push({id,name:`${L.borrower} · running tab`,amount:v,ledger:true})}
@@ -366,7 +372,7 @@ function viewOverview(){
   const ks=activeKeys(),S=savingsSeries();
   let inc=0,needs=0,wants=0,lend=0,dep=0,int=0;const gT={};GROUPS.forEach(G=>gT[G.id]=0);
   const rows=ks.map(k=>{const c=monthCalc(k);inc+=c.incA;needs+=c.needs;wants+=c.wants;lend+=c.lending;dep+=S[k].dep;int+=S[k].int;GROUPS.forEach(G=>gT[G.id]+=c.g[G.id].a);
-    return {k,c,dep:S[k].dep,int:S[k].int,left:c.incA-c.needs-c.wants-c.lending-S[k].dep}});
+    return {k,c,dep:S[k].dep,int:S[k].int,left:c.incA+collectedIn(k).reduce((s,x)=>s+x.amount,0)-c.needs-c.wants-c.lending-S[k].dep}});
   const lastK=ks[ks.length-1];const ef=S[lastK].ef.run;
   const anyData=ks.some(hasData);
   if(!anyData)return `<div class="panel empty"><h2>Nothing tracked yet</h2><p>Open the <a href="#month">Month</a> view and type in your income and spending. Totals and charts appear here as soon as you do.</p></div>`;
@@ -412,7 +418,7 @@ function viewOverview(){
     <h3>Month by month</h3>
     <div class="scroll"><table><thead><tr><th>Month</th><th>Income</th><th>Needs</th><th>Wants</th><th>Lending</th><th>Total spent</th><th>Saved</th><th>Interest</th><th>Left over</th></tr></thead><tbody>
     ${rows.map(r=>`<tr class="link" data-goto="${r.k}" tabindex="0"><td>${label(r.k)}</td><td>${fmt(r.c.incA)}</td><td>${fmt(r.c.needs)}</td><td class="${capOf(r.k)&&r.c.wants>capOf(r.k)?'neg':''}">${fmt(r.c.wants)}${capWarn(r.c.wants,r.k)}</td><td>${fmt(r.c.lending)}</td><td><b>${fmt(r.c.needs+r.c.wants+r.c.lending)}</b></td><td class="${r.dep<0?'neg':''}">${fmt(r.dep)}</td><td>${fmt(r.int)}</td><td class="${r.left<0?'neg':''}">${fmt(r.left)}</td></tr>`).join('')}
-    </tbody><tfoot><tr><td>Total</td><td>${fmt(inc)}</td><td>${fmt(needs)}</td><td>${fmt(wants)}</td><td>${fmt(lend)}</td><td><b>${fmt(needs+wants+lend)}</b></td><td>${fmt(dep)}</td><td>${fmt(int)}</td><td class="${inc-needs-wants-lend-dep<0?'neg':''}">${fmt(inc-needs-wants-lend-dep)}</td></tr></tfoot></table></div>
+    </tbody><tfoot><tr><td>Total</td><td>${fmt(inc)}</td><td>${fmt(needs)}</td><td>${fmt(wants)}</td><td>${fmt(lend)}</td><td><b>${fmt(needs+wants+lend)}</b></td><td>${fmt(dep)}</td><td>${fmt(int)}</td><td class="${rows.reduce((s,r)=>s+r.left,0)<0?'neg':''}">${fmt(rows.reduce((s,r)=>s+r.left,0))}</td></tr></tfoot></table></div>
     <p class="hint">Left over = income − needs − wants − net savings deposits. Negative months are when savings or spending came out of money already in the bank.</p>
   </section>
   ${wantsSection(ks)}`;
@@ -452,7 +458,7 @@ function numInput(id,val,attrs){return `<input class="num" id="${id}" inputmode=
 
 function viewMonth(){
   const k=curMonth,d=months[k]||{},c=monthCalc(k),S=savingsSeries()[k],i=KEYS.indexOf(k),PJ=projection(),tgt=PJ&&PJ.byKey[k];
-  const outflow=c.needs+c.wants+c.lending+S.dep, left=c.incA-outflow;
+  const coll=collectedIn(k).reduce((s,x)=>s+x.amount,0),outflow=c.needs+c.wants+c.lending+S.dep, left=c.incA+coll-outflow;
   const mix=[['Needs',c.needs,.5,'--s1'],['Wants',c.wants,.3,'--s5'],['Savings',S.dep,.2,'--s6']];
   const groupTable=G=>{const list=cats().filter(x=>x.group===G.id);const t=c.g[G.id];
     return `<section class="panel"><div class="row" style="justify-content:space-between"><h3><span class="sw" style="background:var(${G.c});margin-right:8px"></span>${G.name}</h3><span class="muted">${fmt(t.a)} of ${fmt(t.b)}${G.id==='wants'&&capOf(k)?` · cap ${fmt0(capOf(k))}${capInfo(k).carry?` (incl. ${fmt0(capInfo(k).carry)} carried over)`:''}`:''}</span></div>
@@ -460,7 +466,7 @@ function viewMonth(){
     <div class="scroll"><table><thead><tr><th>Category</th><th>Budget</th><th>Actual</th><th>Remaining</th></tr></thead><tbody>
     ${list.map(x=>{const it=d.items?.[x.id]||{};const rem=(it.budget||0)-(it.actual||0);
       return `<tr><td class="name">${esc(x.name)}</td><td>${numInput('b-'+x.id,it.budget,`data-f="item" data-c="${x.id}" data-k="budget" aria-label="${esc(x.name)} budget"`)}</td><td>${numInput('a-'+x.id,it.actual,`data-f="item" data-c="${x.id}" data-k="actual" aria-label="${esc(x.name)} actual"`)}</td><td class="${rem<0?'neg':''}">${fmt(rem)}${rem<0?'<span class="chip">over</span>':''}</td></tr>`}).join('')}
-    ${G.id==='lending'?Object.entries(loans||{}).filter(([,L])=>L.type==='ledger').map(([id,L])=>`<tr><td class="name">${esc(L.borrower)} · running tab<br><a class="muted" style="font-size:12px" href="#lending">Lent this month, net</a></td><td></td><td>${numInput('lm-'+id,ledgerMonth(L,k)||'',`data-f="lendmonth" data-c="${id}" aria-label="${esc(L.borrower)} lent in ${label(k)}"`)}</td><td></td></tr>`).join(''):''}
+    ${G.id==='lending'?Object.entries(loans||{}).filter(([,L])=>L.type==='ledger'&&L.byMonth).map(([id,L])=>`<tr><td class="name">${esc(L.borrower)} · running tab<br><a class="muted" style="font-size:12px" href="#lending">Lent this month, net</a></td><td></td><td>${numInput('lm-'+id,ledgerMonth(L,k)||'',`data-f="lendmonth" data-c="${id}" aria-label="${esc(L.borrower)} lent in ${label(k)}"`)}</td><td></td></tr>`).join(''):''}
     ${G.id==='lending'?lentIn(k).filter(x=>!x.ledger).map(x=>`<tr><td class="name">${esc(x.name)}<br><a class="muted" style="font-size:12px" href="#lending">From the Lending tab</a></td><td></td><td>${fmt(x.amount)}</td><td></td></tr>`).join(''):''}
     </tbody><tfoot><tr><td>Subtotal</td><td>${fmt(t.b)}</td><td>${fmt(t.a)}</td>${G.id==='lending'?'<td></td>':`<td class="${t.b-t.a<0?'neg':''}">${fmt(t.b-t.a)}</td>`}</tr></tfoot></table></div>
     ${canWrite?`<form class="addcat" data-g="${G.id}"><input class="txt" id="new-${G.id}" placeholder="New category in ${esc(G.short)}" aria-label="New category name"><button type="submit">Add</button></form>`:''}</section>`};
@@ -476,7 +482,7 @@ function viewMonth(){
     ${kpi('Spent',fmt(c.needs+c.wants+c.lending),`${fmt(c.needs)} needs · ${fmt(c.wants)} wants`+(c.lending?` · ${fmt(c.lending)} lent out`:'')+(capOf(k)?` (cap ${fmt0(capOf(k))})`:''))}
     ${kpi('Saved',fmt(S.dep),'net deposits to your goal accounts',S.dep<0?'neg':'')}
     ${kpi('Interest earned',fmt(S.int),S.int?ACCOUNTS.filter(A=>S[A.id].int).map(A=>`${A.name} ${fmt(S[A.id].int)}`).join(' · '):'type it in Savings balances below','pos')}
-    ${kpi('Left over',fmt(left),left<0?'overspent: came from money already saved':'after spending and savings',left<0?'neg':'pos')}
+    ${kpi('Left over',fmt(left),(left<0?'overspent: came from money already saved':'after spending and savings')+(coll?` · incl. ${fmt(coll)} collected`:''),left<0?'neg':'pos')}
   </div>
   ${salarySection(k)}
   ${(()=>{const due=collectionsDue(k);if(!due.length)return '';const it=([L,j])=>schedOf(L)[j];const tot=due.reduce((s,x)=>s+(it(x).amount||0),0),got=due.filter(x=>it(x).paid).reduce((s,x)=>s+(it(x).amount||0),0);
@@ -501,6 +507,9 @@ function viewMonth(){
     </section>
   </div>
   ${GROUPS.map(groupTable).join('')}
+  ${(()=>{const col=collectedIn(k),t=col.reduce((s,x)=>s+x.amount,0);return `<section class="panel"><div class="row" style="justify-content:space-between"><h3><span class="sw" style="background:var(--s6);margin-right:8px"></span>Debt collection</h3><span class="muted">${fmt(t)} collected</span></div>
+    ${col.length?`<div class="scroll"><table><thead><tr><th>From</th><th>Date</th><th>Amount</th></tr></thead><tbody>${col.map(x=>`<tr><td class="name">${esc(x.name)}</td><td class="muted">${esc(x.date.length===10?dayLabel(x.date):label(x.date.slice(0,7)))}</td><td class="pos">${fmt(x.amount)}</td></tr>`).join('')}</tbody><tfoot><tr><td>Total</td><td></td><td>${fmt(t)}</td></tr></tfoot></table></div>`:`<p class="hint">No payments collected in ${label(k)}.</p>`}
+    <p class="hint">Payments marked or recorded in the <a href="#lending">Lending</a> tab. They count as money in, so they're added to this month's Left over.</p></section>`})()}
   <div class="grid2">
     <section class="panel"><h3>Savings balances</h3><p class="hint" style="margin:0">Type each account's total balance from your deposits. Interest goes in its own column when it's credited (net of tax).</p>
       <div class="scroll"><table><thead><tr><th>Account</th>${tgt?'<th>Plan target</th>':''}<th>Balance</th><th>Interest</th><th>Deposit</th></tr></thead><tbody>
