@@ -215,7 +215,7 @@ form.payform button{grid-column:1/-1}
 </div></header>
 
 <main class="wrap" id="app"><div class="panel empty">Loading your tracker…</div></main>
-<footer class="foot wrap" id="foot" hidden><span>Signed in as <b id="who"></b></span><button class="link" id="export" type="button">Download a backup</button><button class="link" id="signout" type="button">Sign out</button></footer>
+<footer class="foot wrap" id="foot" hidden><span>Signed in as <b id="who"></b></span><button class="link" id="export" type="button">Download a backup</button><label class="link" style="cursor:pointer;color:var(--accent)"><input type="file" id="loadbackup" accept="application/json,.json" style="display:none">Load a backup</label><button class="link" id="signout" type="button">Sign out</button></footer>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -1112,6 +1112,14 @@ async function exportData(){const out={months,loans,settings:{main:settings}};co
   });
   document.getElementById('signout').addEventListener('click',()=>firebase.auth().signOut());
   document.getElementById('export').addEventListener('click',exportData);
+  // replace this account's data with a backup file (from the app or the claude.ai page)
+  document.getElementById('loadbackup').addEventListener('change',async e=>{const f=e.target.files[0];e.target.value='';if(!f||!db)return;
+    try{const data=JSON.parse(await f.text());if(!data.months||!data.settings?.main)throw new Error('shape');setStatus('Loading backup…');let n=0;
+      for(const [id,b] of Object.entries(data.months))if(/^\d{4}-\d{2}$/.test(id)){await db.doc('months/'+id).set(b);n++}
+      for(const [id,b] of Object.entries(data.loans||{})){await db.doc('loans/'+id).set(b);n++}
+      for(const id of Object.keys(loans))if(!(data.loans||{})[id]){await db.doc('loans/'+id).delete();n++}
+      await db.doc('settings/main').set(data.settings.main);n++;setStatus(`Loaded ${n} records from the backup`)}
+    catch(err){setStatus("That file couldn't be read. Use a moolah-data .json backup.",true)}});
 })();
 if('serviceWorker' in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
 
