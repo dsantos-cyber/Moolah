@@ -337,7 +337,7 @@ function balanceCheck(inc,out,dep,int){
     <p class="hint">${Math.abs(gap1)<1?'Balanced.':gap1>0?'Money left over that didn\'t go into savings: cash on hand, or spending not entered yet.':'You saved more than this period\'s income left over, so some deposits came from money you already had (your first balances count as deposits).'}</p></div>
   <div><span class="eyebrow">Tracker vs your actual total</span><div class="scroll"><table><tbody>
     ${row('Savings in the tracker (deposits + interest)',tracked)}
-    <tr><td class="name">Your actual total today</td><td>${numInput('actual-sav',A.amount,'data-f="actual" aria-label="Your actual savings total"')}</td></tr>
+    <tr><td class="name">Your actual money now</td><td>${numInput('actual-sav',A.amount,'data-f="actual" aria-label="Your actual savings total"')}</td></tr>
     ${A.amount?row('Difference',gap2,Math.abs(gap2)<1?'pos':'neg',true):''}</tbody></table></div>
     <p class="hint">${!A.amount?'Type your real total across all accounts to compare.':Math.abs(gap2)<1?'Balanced.':gap2>0?'Your accounts hold more than the tracker shows. Update the latest month\'s balances and interest in Month to match.':'The tracker shows more than your accounts hold. Check the latest balances in Month.'}</p></div></div></section>`}
 function viewOverview(){
@@ -358,9 +358,11 @@ function viewOverview(){
     <div><span class="eyebrow">${label(ks[0])} – ${label(lastK)}</span><h2>Where the money went</h2></div>
     <div class="kpis">
       ${kpi('Income',fmt0(inc),`${ks.filter(k=>monthCalc(k).incA).length} months with income`)}
-      ${kpi('Spent',fmt0(needs+wants),`${fmt0(needs)} needs · ${fmt0(wants)} wants`+(lend?` · ${fmt0(lend)} lent out`:''))}
-      ${(()=>{const net=inc-needs-wants-lend;return kpi('Income minus expenses',fmt0(net),`actual income less needs, wants${lend?' and lending':''}`,net<0?'neg':'pos')})()}
-      ${(()=>{const A=settings.actualSavings;return A&&A.amount?kpi('Total savings',fmt(A.amount),`your actual total incl. interest, as of ${dayLabel(A.date)}`):kpi('Saved',fmt0(dep),`plus ${fmt(int)} interest earned`)})()}
+      ${kpi('Spent',fmt0(needs+wants+lend),`${fmt0(needs)} needs · ${fmt0(wants)} wants`+(lend?` · ${fmt0(lend)} lent out`:''))}
+      ${(()=>{const net=inc-needs-wants-lend,A=settings.actualSavings;
+        if(!(A&&A.amount))return kpi('Income minus expenses',fmt0(net),`actual income less needs, wants${lend?' and lending':''}. Type your actual money below to compare.`,net<0?'neg':'pos');
+        const gap=A.amount-net;return kpi('Money now (income − spent)',fmt(A.amount),`your actual money as of ${dayLabel(A.date)}`,'pos')+kpi('Discrepancy',(gap>0?'+':'')+fmt(gap),Math.abs(gap)<1?'income minus spending matches your actual money':`the tracker's income − spent is ${fmt0(net)}; the rest is money from before ${label(ks[0])}, loan repayments or entries not recorded`,Math.abs(gap)<1?'pos':'neg')})()}
+      ${kpi('Saved',fmt0(dep),`plus ${fmt(int)} interest earned`)}
       ${kpi('Emergency Fund',fmt0(ef),`${pct(ef/goalOf('ef'))} of the ${short(goalOf('ef'))} goal`)}
     </div>
   </section>
