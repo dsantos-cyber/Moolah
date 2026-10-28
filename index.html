@@ -257,11 +257,17 @@ const srcName=k=>(settings.sources&&settings.sources[k])||k;
 const goalOf=id=>(settings.goals&&settings.goals[id])||1000000;
 
 // ---------- calculations ----------
+// money lent through the Lending tab, counted in the month it went out
+function lentIn(k){const out=[];for(const [id,L] of Object.entries(loans||{})){
+    if(L.type==='ledger'){(L.entries||[]).forEach(e=>{if(e.kind==='lent'&&e.date&&e.date.slice(0,7)===k)out.push({id,name:`${L.borrower} · ${e.label}`,amount:e.amount})})}
+    else if(L.lentOn===k)out.push({id,name:`${L.borrower} · ${L.item||L.group||'Loan'}`,amount:L.principal||0})}
+  return out}
 function monthCalc(k){
   const d=months[k]||{};let incE=0,incA=0;
   for(const s of SRC_KEYS){const r=d.income?.[s];if(r){incE+=r.expected||0;incA+=r.actual||0}}
   const g={};for(const G of GROUPS)g[G.id]={b:0,a:0};
   for(const c of cats()){const it=d.items?.[c.id];if(it&&g[c.group]){g[c.group].b+=it.budget||0;g[c.group].a+=it.actual||0}}
+  for(const x of lentIn(k))g.lending.a+=x.amount;
   const needs=GROUPS.filter(G=>G.kind==='needs').reduce((s,G)=>s+g[G.id].a,0);
   return {incE,incA,g,needs,wants:g.wants.a,lending:g.lending.a};
 }
@@ -414,7 +420,8 @@ function viewMonth(){
     <div class="scroll"><table><thead><tr><th>Category</th><th>Budget</th><th>Actual</th><th>Remaining</th></tr></thead><tbody>
     ${list.map(x=>{const it=d.items?.[x.id]||{};const rem=(it.budget||0)-(it.actual||0);
       return `<tr><td class="name">${esc(x.name)}</td><td>${numInput('b-'+x.id,it.budget,`data-f="item" data-c="${x.id}" data-k="budget" aria-label="${esc(x.name)} budget"`)}</td><td>${numInput('a-'+x.id,it.actual,`data-f="item" data-c="${x.id}" data-k="actual" aria-label="${esc(x.name)} actual"`)}</td><td class="${rem<0?'neg':''}">${fmt(rem)}${rem<0?'<span class="chip">over</span>':''}</td></tr>`}).join('')}
-    </tbody><tfoot><tr><td>Subtotal</td><td>${fmt(t.b)}</td><td>${fmt(t.a)}</td><td class="${t.b-t.a<0?'neg':''}">${fmt(t.b-t.a)}</td></tr></tfoot></table></div>
+    ${G.id==='lending'?lentIn(k).map(x=>`<tr><td class="name">${esc(x.name)}<br><a class="muted" style="font-size:12px" href="#lending">From the Lending tab</a></td><td></td><td>${fmt(x.amount)}</td><td></td></tr>`).join(''):''}
+    </tbody><tfoot><tr><td>Subtotal</td><td>${fmt(t.b)}</td><td>${fmt(t.a)}</td>${G.id==='lending'?'<td></td>':`<td class="${t.b-t.a<0?'neg':''}">${fmt(t.b-t.a)}</td>`}</tr></tfoot></table></div>
     ${canWrite?`<form class="addcat" data-g="${G.id}"><input class="txt" id="new-${G.id}" placeholder="New category in ${esc(G.short)}" aria-label="New category name"><button type="submit">Add</button></form>`:''}</section>`};
   return `
   <div class="monthbar">
@@ -499,7 +506,7 @@ function balChart(ks,S){
 }
 
 // ---------- savings plan ----------
-const SECTIONS=[['needs','Needs','--s1'],['sinking','Sinking funds','--s3'],['wants','Wants','--s5']];
+const SECTIONS=[['needs','Needs','--s1'],['sinking','Big Plans Fund','--s3'],['wants','Wants','--s5']];
 let capMemo={};
 const capRules=()=>settings.wantsCaps||(settings.wantsCap?[{from:KEYS[0],amount:settings.wantsCap,carry:false}]:[]);
 const wantsCap=()=>{const r=capRules().filter(x=>x.from<=NOWKEY).pop()||capRules()[0];return r?r.amount:0};
@@ -588,7 +595,7 @@ function viewPlan(){
       <div class="stack" role="img" aria-label="Salary split">${secT.filter(x=>x.v>0).map(x=>`<i style="flex:${x.v};background:var(${x.c})" title="${x.n} ${fmt0(x.v)}"></i>`).join('')}</div>
       <div class="legend">${secT.map(x=>`<span><i class="sw" style="background:var(${x.c})"></i>${x.n} ${fmt0(x.v)} · ${pct(PJ.salary?x.v/PJ.salary:0)}</span>`).join('')}</div>
       <div class="scroll"><table><thead><tr><th>Line by line</th><th>Monthly</th></tr></thead>
-      ${SECTIONS.map(([id,n])=>`<tbody><tr><td colspan="2" class="eyebrow" style="padding-top:12px">${n}</td></tr>${P.lines.filter(l=>l.section===id).map(l=>`<tr><td class="name">${esc(l.name)}</td><td>${numInput('pl-'+l.id,l.amount,`data-f="plan" data-c="${l.id}" aria-label="${esc(l.name)} monthly amount"`)}</td></tr>`).join('')}</tbody>`).join('')}
+      ${SECTIONS.filter(([id])=>P.lines.some(l=>l.section===id)).map(([id,n])=>`<tbody><tr><td colspan="2" class="eyebrow" style="padding-top:12px">${n}</td></tr>${P.lines.filter(l=>l.section===id).map(l=>`<tr><td class="name">${esc(l.name)}</td><td>${numInput('pl-'+l.id,l.amount,`data-f="plan" data-c="${l.id}" aria-label="${esc(l.name)} monthly amount"`)}</td></tr>`).join('')}</tbody>`).join('')}
       <tfoot><tr><td>Salary total</td><td>${fmt(PJ.salary)}</td></tr></tfoot></table></div>
     </section>
     <div style="display:grid;gap:16px;min-width:0">
@@ -597,7 +604,7 @@ function viewPlan(){
         <tr><td class="name">Expected monthly income<br><span class="hint">${esc(P.incomeNote||'')}</span></td><td>${numInput('pl-income',P.expectedIncome,'data-f="plan" data-c="income" aria-label="Expected monthly income"')}</td></tr>
         <tr><td class="name">Left for goals each month</td><td>${fmt(PJ.left)}</td></tr>
         <tr><td class="name">Dream House share after EF (%)<br><span class="hint">the rest goes to Business Venture</span></td><td>${numInput('pl-share',Math.round(PJ.share*100),'data-f="plan" data-c="share" aria-label="Dream House share percent"')}</td></tr>
-        <tr><td class="name">Wants cap per month<br><span class="hint">from ${label((capRules().slice(-1)[0]||{from:NOWKEY}).from)}${(capRules().slice(-1)[0]||{}).carry?', unspent amount carries over':''}</span></td><td>${numInput('pl-cap',(capRules().slice(-1)[0]||{}).amount,'data-f="plan" data-c="cap" aria-label="Wants cap per month"')}</td></tr>
+        <tr><td class="name">Wants cap per month<br><span class="hint">from ${label((capRules().slice(-1)[0]||{from:NOWKEY}).from)}${(capRules().slice(-1)[0]||{}).carry==='fund'?', unspent amount goes to the Big Plans Fund':(capRules().slice(-1)[0]||{}).carry?', unspent amount carries over':''}</span></td><td>${numInput('pl-cap',(capRules().slice(-1)[0]||{}).amount,'data-f="plan" data-c="cap" aria-label="Wants cap per month"')}</td></tr>
         </tbody></table>
       </section>
       <section class="panel"><h3>How money moves each month</h3>
@@ -732,6 +739,7 @@ function viewLending(){
       <label>Amount lent (₱)<input class="txt" id="ln-amt" inputmode="text" enterkeyhint="done" data-calc required placeholder="0.00"></label>
       <label>Interest, total (₱)<input class="txt" id="ln-int" inputmode="text" enterkeyhint="done" data-calc placeholder="0.00"></label>
       <label>Installments<input class="txt" id="ln-n" inputmode="numeric" value="1"></label>
+      <label>Lent on<input class="txt" id="ln-on" type="date" value="${TODAY}"></label>
       <label>First due date<input class="txt" id="ln-due" type="date" required value="${TODAY}"></label>
       <button class="primary" type="submit">Add loan</button>
     </form><p class="hint">Splits amount plus interest into equal monthly payments on the same day each month. For a loan paid back in any amounts, ask Claude to set it up as a flexible loan.</p></section>`:''}`;
@@ -755,13 +763,13 @@ function wireLending(){
   const f=document.getElementById('loanform');if(f)f.addEventListener('submit',e=>{e.preventDefault();const g=id=>document.getElementById(id).value.trim();
     const amt=num(g('ln-amt')),intr=num(g('ln-int')),n=Math.max(1,Math.min(60,parseInt(g('ln-n'))||1)),due=g('ln-due');if(!amt||!g('ln-who')||!due)return;
     const per=r2((amt+intr)/n);const installments=Array.from({length:n},(_,j)=>({due:addMonths(due,j),amount:j===n-1?r2(amt+intr-per*(n-1)):per,paid:false}));
-    const id='l'+Date.now().toString(36);loans[id]={borrower:g('ln-who'),item:g('ln-item'),group:g('ln-item')||'Other loans',principal:amt,installments,created:new Date().toISOString()};saveLoan(id);render();setStatus('Loan added')});
+    const id='l'+Date.now().toString(36);loans[id]={borrower:g('ln-who'),item:g('ln-item'),group:g('ln-item')||'Other loans',principal:amt,installments,lentOn:(g('ln-on')||TODAY).slice(0,7),created:new Date().toISOString()};saveLoan(id);render();setStatus('Loan added')});
   if(pendingFocus){const el=document.getElementById(pendingFocus);pendingFocus=null;if(el){el.scrollIntoView({block:'center'});el.focus({preventScroll:true})}}
 }
 
 // ---------- Big Plans Fund: unspent wants cap from each finished month ----------
 let bpSpendFor=null;
-const BP_DEFAULT=[['travel','Travel'],['masteral','Masteral / Preceptorship (Oral Surgery)'],['gadget','Gadget upgrade'],['family-celebration','Family celebration']];
+const BP_DEFAULT=[['travel','Travel'],['masteral','Masteral / Continuing Education (Oral Surgery)'],['gadget','Gadget upgrade'],['family-celebration','Family events & celebrations'],['gifts','Gifts']];
 function bpInflows(){const out=[];for(const k of KEYS){const ci=capInfo(k);if(!ci.toFund||k>=NOWKEY)continue;
   // only months that have ended; a month with nothing entered still counts once it's over
   out.push({k,cap:ci.cap,wants:monthCalc(k).wants,in:Math.max(0,ci.cap-monthCalc(k).wants)})}return out}
@@ -776,7 +784,7 @@ function viewBigPlans(){
   const w=B.buckets.reduce((s,b)=>s+(b.share??1),0)||1;
   return `
   <section><div><span class="eyebrow">Big Plans Fund</span><h2>${fmt0(total-spent)} saved for big plans</h2></div>
-    <p class="hint" style="margin:4px 0 0">Whatever you don't use of your ${fmt0(ci.base||13100)} wants cap goes here at the end of each month, from ${label(B.start||'2026-11')}. It's split between your plans by their shares. A plan you add later only gets money from the month you add it.</p>
+    <p class="hint" style="margin:4px 0 0">Whatever you don't use of your ${fmt0(ci.base||3000)} wants budget goes here at the end of each month, from ${label(B.start||'2026-11')}. It's split between your plans by their shares. A plan you add later only gets money from the month you add it.</p>
     <div class="kpis">
       ${kpi('Added so far',fmt0(total),`${inflows.length} finished month${inflows.length===1?'':'s'}`,'pos')}
       ${kpi('Used',fmt0(spent),`${(B.spends||[]).length} purchase${(B.spends||[]).length===1?'':'s'}`)}
@@ -790,6 +798,10 @@ function viewBigPlans(){
     <span class="hint">${pct((r.share??1)/w)} of new money · ${fmt0(r.alloc)} in${r.from&&r.from>(B.start||'2026-11')?` since ${label(r.from)}`:''}${r.spent?` · ${fmt0(r.spent)} used`:''}</span>
     ${canWrite?`<div class="row" style="gap:8px;flex-wrap:wrap"><label class="hint">Goal ₱ <input class="txt" style="width:110px" data-bpgoal="${r.id}" data-calc inputmode="text" value="${r.target?editVal(r.target):''}" placeholder="optional"></label>
       <label class="hint">Share <input class="txt" style="width:60px" data-bpshare="${r.id}" inputmode="numeric" value="${r.share??1}"></label></div>
+      <textarea data-bpnote="${r.id}" data-orig="${esc(r.note||'')}" style="min-height:64px" placeholder="Notes: prices, links, plans…" aria-label="Notes for ${esc(r.name)}">${esc(r.note||'')}</textarea>
+      ${(r.files||[]).length?`<div style="display:grid;gap:6px">${r.files.map(f=>`<div class="row" style="gap:8px;align-items:center">${/^image\//.test(f.type)?`<img data-bpimg="${f.id}" alt="" style="width:44px;height:44px;object-fit:cover;border-radius:8px;background:var(--sunk)">`:'<span class="sw" style="width:44px;height:44px;border-radius:8px;display:grid;place-items:center;font-size:11px">FILE</span>'}
+        <button type="button" class="link" data-bpopen="${f.id}" style="flex:1;text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(f.name)}</button><button type="button" class="link" data-bpfrm="${r.id}" data-fid="${f.id}">Remove</button></div>`).join('')}</div>`:''}
+      <label class="hint" style="cursor:pointer"><input type="file" data-bpfile="${r.id}" accept="image/*,application/pdf,.doc,.docx,.xls,.xlsx,.txt" multiple style="display:none"><span class="link" style="text-decoration:underline">+ Add a photo or file</span></label>
       ${bpSpendFor===r.id?`<form class="payform" data-bpspend="${r.id}" style="display:grid;gap:6px"><input class="txt" id="bps-what" placeholder="What did you buy?" required><input class="txt" id="bps-amt" data-calc inputmode="text" placeholder="Amount ₱" required><input class="txt" id="bps-date" type="date" value="${TODAY}"><div class="row" style="gap:8px"><button class="primary" type="submit">Save</button><button type="button" class="link" data-bpcancel>Cancel</button></div></form>`
         :`<button type="button" data-bpuse="${r.id}">Use money from this</button>`}`:''}
   </section>`}).join('')}</div>
@@ -802,8 +814,29 @@ function viewBigPlans(){
       ${(B.spends||[]).map((x,i)=>`<tr><td class="name">${esc(x.label)}<br><span class="muted" style="font-size:12px">${esc(x.date||'')}</span></td><td>${esc(B.buckets.find(b=>b.id===x.bucket)?.name||'—')}</td><td>${fmt0(x.amount)}</td><td>${canWrite?`<button class="link" data-bpundo="${i}">Remove</button>`:''}</td></tr>`).join('')}</tbody></table></div>`:'<p class="hint">Tap "Use money from this" on a plan when you buy something with it. Don\'t also enter it in the Month tracker.</p>'}</section>
   </div>`;
 }
+// photos and files live in their own docs (files/<id>); photos are shrunk so each stays under Firestore's 1 MB limit
+const fileCache={};
+function shrinkImage(file){return new Promise((res,rej)=>{const img=new Image(),u=URL.createObjectURL(file);img.onload=()=>{const m=1600,sc=Math.min(1,m/Math.max(img.width,img.height));
+  const c=document.createElement('canvas');c.width=Math.round(img.width*sc);c.height=Math.round(img.height*sc);c.getContext('2d').drawImage(img,0,0,c.width,c.height);URL.revokeObjectURL(u);
+  let q=.82,d=c.toDataURL('image/jpeg',q);while(d.length>900000&&q>.3){q-=.12;d=c.toDataURL('image/jpeg',q)}res(d)};img.onerror=()=>{URL.revokeObjectURL(u);rej(new Error('img'))};img.src=u})}
+const readData=f=>new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=rej;r.readAsDataURL(f)});
+async function fileData(id){if(fileCache[id])return fileCache[id];const s=await db.doc('files/'+id).get();return fileCache[id]=s.exists?s.data().data:null}
 function wireBigPlans(){
   const B=settings.bigPlans;if(!B||view!=='bigplans')return;
+  const bucket=id=>B.buckets.find(b=>b.id===id);
+  app.querySelectorAll('[data-bpnote]').forEach(el=>el.addEventListener('change',()=>{const x=bucket(el.dataset.bpnote);if(!x)return;x.note=el.value;el.dataset.orig=el.value;saveSettings()}));
+  app.querySelectorAll('img[data-bpimg]').forEach(async el=>{try{const d=await fileData(el.dataset.bpimg);if(d)el.src=d}catch(_){}});
+  app.querySelectorAll('[data-bpopen]').forEach(b=>b.addEventListener('click',async()=>{try{const d=await fileData(b.dataset.bpopen);if(!d){setStatus('File not found',true);return}
+    const blob=await (await fetch(d)).blob();const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.target='_blank';a.rel='noopener';if(!/^image\/|pdf/.test(blob.type))a.download=b.textContent;document.body.appendChild(a);a.click();a.remove()}catch(_){setStatus('Could not open the file',true)}}));
+  app.querySelectorAll('[data-bpfrm]').forEach(b=>b.addEventListener('click',()=>{const x=bucket(b.dataset.bpfrm);if(!x)return;const fid=b.dataset.fid;x.files=(x.files||[]).filter(f=>f.id!==fid);saveSettings();render();db.doc('files/'+fid).delete().catch(()=>{})}));
+  app.querySelectorAll('[data-bpfile]').forEach(inp=>inp.addEventListener('change',async()=>{const x=bucket(inp.dataset.bpfile);if(!x)return;let n=0;
+    for(const f of inp.files){try{setStatus(`Uploading ${f.name}…`);const isImg=/^image\//.test(f.type)&&!/svg/.test(f.type);
+        if(!isImg&&f.size>700000){setStatus(`${f.name} is too big (max 700 KB for files; photos are shrunk automatically)`,true);continue}
+        const data=isImg?await shrinkImage(f):await readData(f);const id='f'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+        await db.doc('files/'+id).set({name:f.name,type:isImg?'image/jpeg':f.type||'application/octet-stream',bucket:x.id,data,added:TODAY});fileCache[id]=data;
+        x.files=(x.files||[]).concat([{id,name:f.name,type:isImg?'image/jpeg':f.type,added:TODAY}]);n++}
+      catch(_){setStatus(`Could not add ${f.name}`,true)}}
+    if(n){saveSettings();render();setStatus(`Added ${n} file${n>1?'s':''}`)}}));
   app.querySelectorAll('[data-bpuse]').forEach(b=>b.addEventListener('click',()=>{bpSpendFor=b.dataset.bpuse;render();document.getElementById('bps-what')?.focus()}));
   app.querySelectorAll('[data-bpcancel]').forEach(b=>b.addEventListener('click',()=>{bpSpendFor=null;render()}));
   app.querySelectorAll('form[data-bpspend]').forEach(f=>f.addEventListener('submit',e=>{e.preventDefault();const amt=num(document.getElementById('bps-amt').value),what=document.getElementById('bps-what').value.trim();if(!amt||!what)return;
@@ -822,6 +855,25 @@ function migrateSettings(){
   settings.shoppingCaps=[{from:'2026-11',amount:3000}];
   settings.bigPlans={start:'2026-11',buckets:BP_DEFAULT.map(([id,name])=>({id,name,share:1,target:0})),spends:[]};
   saveSettings()}
+
+// one-time update (28 Oct 2026): ₱50,000 salary plan, FWD under needs, trips/gifts/events move to the Big Plans Fund, ₱3,000 wants budget feeds the fund, June/Oct loans linked to their months
+function migrateSettings2(){
+  if(!canWrite||(settings.mig||0)>=2||!settings.bigPlans)return;
+  const P=settings.plan;
+  if(P&&P.lines){P.lines=P.lines.filter(l=>!['events','gifts','trips'].includes(l.id));
+    const ln=id=>P.lines.find(l=>l.id===id);if(ln('fwd'))ln('fwd').section='needs';if(ln('upskilling'))ln('upskilling').amount=1000;
+    const tot=()=>P.lines.reduce((s,l)=>s+(l.amount||0),0);if(tot()<50000&&ln('load')&&ln('load').amount===900)ln('load').amount=1000;
+    P.rules=(P.rules||[]).map(r=>/sinking funds/i.test(r)?'Big events come from the Big Plans Fund':r)}
+  const rs=clone(capRules()).filter(r=>r.from<'2026-11');rs.push({from:'2026-11',amount:3000,carry:'fund'});settings.wantsCaps=rs;
+  const B=settings.bigPlans,b=id=>B.buckets.find(x=>x.id===id);
+  if(b('masteral'))b('masteral').name='Masteral / Continuing Education (Oral Surgery)';
+  if(b('family-celebration')&&b('family-celebration').name==='Family celebration')b('family-celebration').name='Family events & celebrations';
+  if(!b('gifts'))B.buckets.push({id:'gifts',name:'Gifts',share:1,target:0});
+  // link the June family loan and the October Bruno Mars tickets to the month they were lent; drop a hand-typed copy of the same amount
+  const link={'family-debt':'2026-06','bruno-1':'2026-10','bruno-2':'2026-10','bruno-3':'2026-10'};const sums={};
+  for(const [id,k] of Object.entries(link)){const L=loans[id];if(!L||L.lentOn)continue;L.lentOn=k;saveLoan(id);sums[k]=(sums[k]||0)+(L.principal||0)}
+  for(const [k,v] of Object.entries(sums)){const it=months[k]?.items?.['money-lent'];if(it&&Math.abs((it.actual||0)-v)<1){delete months[k].items['money-lent'];saveMonth(k)}}
+  settings.mig=2;saveSettings()}
 
 // ---------- wants cap & salary budget ----------
 let wantsMonth='all';
@@ -872,7 +924,7 @@ function salarySection(k){
     <p class="hint" style="margin:0">Your monthly salary split by the Savings plan. Bars fill from what you enter in the tables below.${before?` The salary starts ${label(P.start||'2026-11')}, so this month is for comparison only.`:''}</p></div>
     <span class="${used>salary?'neg':'muted'}">${fmt0(used)} used · ${used>salary?fmt0(used-salary)+' over':fmt0(salary-used)+' left'}</span></div>
     ${bar(used,salary)}
-    ${SECTIONS.map(([sid,sn])=>`<div class="sal-sec"><span class="eyebrow">${sn}</span>${lines.filter(l=>l.section===sid).map(l=>{const rem=(l.amount||0)-l.v;
+    ${SECTIONS.filter(([sid])=>lines.some(l=>l.section===sid)).map(([sid,sn])=>`<div class="sal-sec"><span class="eyebrow">${sn}</span>${lines.filter(l=>l.section===sid).map(l=>{const rem=(l.amount||0)-l.v;
       return `<div class="sal"><div class="sal-h"><span>${esc(l.name)}${l.carry?`<span class="muted" style="font-size:12px"> · incl. ${fmt0(l.carry)} carried over</span>`:''}${sid==='sinking'?'<span class="muted" style="font-size:12px"> · set aside monthly</span>':''}</span><span class="${rem<0?'neg':''}">${fmt0(l.v)} / ${fmt0(l.amount)}</span></div>${bar(l.v,l.amount)}
       <div class="sal-f"><span class="hint">${(l.cats||[]).map(id=>cats().find(c=>c.id===id)?.name).filter(Boolean).map(esc).join(', ')||'No categories linked'}</span><span class="hint ${rem<0?'neg':''}">${rem<0?fmt0(-rem)+' over':fmt0(rem)+' left'}</span></div></div>`}).join('')}</div>`).join('')}
     ${other.length?`<div class="sal-sec"><span class="eyebrow">Not in the salary plan</span><div class="sal"><div class="sal-h"><span>${other.map(c=>esc(c.name)).join(', ')}</span><span>${fmt0(otherT)}</span></div><span class="hint">Spending in categories no plan line covers. Ask Claude to link them to a line.</span></div></div>`:''}
@@ -991,7 +1043,7 @@ function exportData(){const out={months,loans,settings:{main:settings}};const bl
     let gotM=false,gotS=false,gotL=false,sExists=false;
     const ready=()=>{if(!(gotM&&gotS&&gotL)||loaded){if(loaded)render();return}
       if(!sExists&&!Object.keys(months).length){importView();return}
-      loaded=true;migrateSettings();if(!KEYS.some(hasData))curMonth=KEYS.includes(NOWKEY)?NOWKEY:KEYS[0];render()};
+      loaded=true;migrateSettings();migrateSettings2();if(!KEYS.some(hasData))curMonth=KEYS.includes(NOWKEY)?NOWKEY:KEYS[0];render()};
     unsub.push(db.collection('months').onSnapshot(snap=>{const next={};for(const doc of snap.docs){if(saving['months/'+doc.id])next[doc.id]=months[doc.id];else next[doc.id]=clone(doc.data())}
       for(const p in saving)if(p.startsWith('months/')){const id=p.slice(7);next[id]=months[id]}months=next;gotM=true;ready()},
       e=>{setStatus('Live updates stopped. Reload to reconnect.',true)}));
