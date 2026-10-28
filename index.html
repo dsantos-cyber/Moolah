@@ -28,7 +28,7 @@ footer.foot{display:flex;flex-wrap:wrap;gap:6px 14px;justify-content:center;font
   --bg:#fcf6f8; --surface:#ffffff; --sunk:#f7eaf0; --ink:#3a2533; --muted:#7a6070; --line:#efdce5;
   --accent:#c94b85; --accent-ink:#ffffff; --accent-soft:#fbe3ee; --focus:#e8954a;
   --over:#c94f4c; --over-soft:#fbe4e3; --ok:#2f8a5f; --on-series:#3a2533;
-  --s1:#8fb8f0; --s2:#f6a98b; --s3:#8fd6b8; --s4:#f2c76a; --s5:#f3a6c8; --s6:#9ed38f;
+  --s1:#8fb8f0; --s2:#f6a98b; --s3:#8fd6b8; --s4:#f2c76a; --s5:#f3a6c8; --s6:#9ed38f; --s7:#b9a6ee;
   --t1:#fdeef4; --t2:#f1edfc; --t3:#e9f7f0; --t4:#fef0e8; --t5:#e9f1fd; --t6:#fdf6e3;
   --display:"Bricolage Grotesque", "Avenir Next", "Segoe UI", system-ui, sans-serif;
   --body:"Instrument Sans", "Segoe UI", system-ui, -apple-system, sans-serif;
@@ -37,7 +37,7 @@ footer.foot{display:flex;flex-wrap:wrap;gap:6px 14px;justify-content:center;font
   --bg:#1c1a26; --surface:#24212f; --sunk:#2c2839; --ink:#ece9f5; --muted:#aaa4c2; --line:#383348;
   --accent:#b9abf2; --accent-ink:#1c1a26; --accent-soft:#352f4d; --focus:#f5c58a;
   --over:#f29b97; --over-soft:#45282c; --ok:#93d9ae; --on-series:#1c1a26;
-  --s1:#7ea6e0; --s2:#e89a7c; --s3:#7cc7a8; --s4:#e3be6a; --s5:#e394b7; --s6:#8cc27e;
+  --s1:#7ea6e0; --s2:#e89a7c; --s3:#7cc7a8; --s4:#e3be6a; --s5:#e394b7; --s6:#8cc27e; --s7:#a796e0;
   --t1:var(--surface); --t2:var(--surface); --t3:var(--surface); --t4:var(--surface); --t5:var(--surface); --t6:var(--surface); color-scheme:dark}
 *{box-sizing:border-box}
 body{background:var(--bg);color:var(--ink);font:15px/1.5 var(--body);font-variant-numeric:tabular-nums}
@@ -218,8 +218,9 @@ const GROUPS=[
   {id:'family',name:'Needs — Family Contribution',short:'Family',kind:'needs',c:'--s2'},
   {id:'insurance',name:'Needs — Insurance',short:'Insurance',kind:'needs',c:'--s3'},
   {id:'work',name:'Needs — Work Essentials',short:'Work',kind:'needs',c:'--s4'},
-  {id:'wants',name:'Wants',short:'Wants',kind:'wants',c:'--s5'}];
-const BASE_CATS=[["rent","Rent","solo"],["gym-membership","Gym Membership","solo"],["gym-supplement","Gym Supplement","solo"],["education-upskilling","Education / Upskilling","solo"],["transportation","Transportation","solo"],["mobile-load","Mobile Load","solo"],["hygiene-supplies","Hygiene Supplies","solo"],["hair-care","Hair Care","solo"],["skincare","Skincare","solo"],["health-insurance-papa","Health Insurance (Papa)","family"],["luffy-s-pet-insurance","Luffy's Pet Insurance","family"],["electricity-bill","Electricity Bill","family"],["fwd-life-insurance-annual","FWD Life Insurance (annual)","insurance"],["hmo","HMO","insurance"],["st-peter-funeral-plan","St. Peter Funeral Plan","insurance"],["back-up-devices","Back-Up Devices","work"],["internet-back-up","Internet Back-Up","work"],["ups","UPS","work"],["eyewear-eyecare","Eyewear / Eyecare","work"],["clinic-duty","Clinic Duty","work"],["ergonomic-items","Ergonomic Items","work"],["travel-fund","Travel Fund","wants"],["rest-and-recreation","Rest and Recreation","wants"],["social-gathering","Social Gathering","wants"],["dine-out-food-delivery","Dine Out / Food Delivery","wants"],["gifts","Gifts","wants"],["play-fund","Play Fund","wants"],["shopping-clothes","Shopping – Clothes","wants"],["shopping-shoes","Shopping – Shoes","wants"],["shopping-electronics-gadgets","Shopping – Electronics & Gadgets","wants"],["shopping-makeup","Shopping – Makeup","wants"],["shopping-home-essentials","Shopping – Home Essentials","wants"],["shopping-gym-essentials","Shopping – Gym Essentials","wants"],["e-games","E-Games","wants"],["others","Others","wants"]].map(([id,name,group])=>({id,name,group}));
+  {id:'wants',name:'Wants',short:'Wants',kind:'wants',c:'--s5'},
+  {id:'lending',name:'Lending',short:'Lending',kind:'lending',c:'--s7'}];
+const BASE_CATS=[["rent","Rent","solo"],["gym-membership","Gym Membership","solo"],["gym-supplement","Gym Supplement","solo"],["education-upskilling","Education / Upskilling","solo"],["transportation","Transportation","solo"],["mobile-load","Mobile Load","solo"],["hygiene-supplies","Hygiene Supplies","solo"],["hair-care","Hair Care","solo"],["skincare","Skincare","solo"],["health-insurance-papa","Health Insurance (Papa)","family"],["luffy-s-pet-insurance","Luffy's Pet Insurance","family"],["electricity-bill","Electricity Bill","family"],["fwd-life-insurance-annual","FWD Life Insurance (annual)","insurance"],["hmo","HMO","insurance"],["st-peter-funeral-plan","St. Peter Funeral Plan","insurance"],["back-up-devices","Back-Up Devices","work"],["internet-back-up","Internet Back-Up","work"],["ups","UPS","work"],["eyewear-eyecare","Eyewear / Eyecare","work"],["clinic-duty","Clinic Duty","work"],["ergonomic-items","Ergonomic Items","work"],["travel-fund","Travel Fund","wants"],["rest-and-recreation","Rest and Recreation","wants"],["social-gathering","Social Gathering","wants"],["dine-out-food-delivery","Dine Out / Food Delivery","wants"],["gifts","Gifts","wants"],["play-fund","Play Fund","wants"],["shopping-clothes","Shopping – Clothes","wants"],["shopping-shoes","Shopping – Shoes","wants"],["shopping-electronics-gadgets","Shopping – Electronics & Gadgets","wants"],["shopping-makeup","Shopping – Makeup","wants"],["shopping-home-essentials","Shopping – Home Essentials","wants"],["shopping-gym-essentials","Shopping – Gym Essentials","wants"],["e-games","E-Games","wants"],["others","Others","wants"],["money-lent","Money lent out","lending"]].map(([id,name,group])=>({id,name,group}));
 const ACCOUNTS=[
   {id:'ef',name:'Emergency Fund',bank:'Maribank',rate:'3.75% p.a. time deposit'},
   {id:'house',name:'Dream House',bank:'Maya',rate:'3% p.a. savings'},
@@ -261,7 +262,7 @@ function monthCalc(k){
   const g={};for(const G of GROUPS)g[G.id]={b:0,a:0};
   for(const c of cats()){const it=d.items?.[c.id];if(it&&g[c.group]){g[c.group].b+=it.budget||0;g[c.group].a+=it.actual||0}}
   const needs=GROUPS.filter(G=>G.kind==='needs').reduce((s,G)=>s+g[G.id].a,0);
-  return {incE,incA,g,needs,wants:g.wants.a};
+  return {incE,incA,g,needs,wants:g.wants.a,lending:g.lending.a};
 }
 function savingsSeries(){
   const last={ef:0,house:0,biz:0},cumI={ef:0,house:0,biz:0},out={};
@@ -319,9 +320,9 @@ function kpi(label,v,s,cls=''){return `<div class="kpi"><span class="eyebrow">${
 
 function viewOverview(){
   const ks=activeKeys(),S=savingsSeries();
-  let inc=0,needs=0,wants=0,dep=0,int=0;const gT={};GROUPS.forEach(G=>gT[G.id]=0);
-  const rows=ks.map(k=>{const c=monthCalc(k);inc+=c.incA;needs+=c.needs;wants+=c.wants;dep+=S[k].dep;int+=S[k].int;GROUPS.forEach(G=>gT[G.id]+=c.g[G.id].a);
-    return {k,c,dep:S[k].dep,left:c.incA-c.needs-c.wants-S[k].dep}});
+  let inc=0,needs=0,wants=0,lend=0,dep=0,int=0;const gT={};GROUPS.forEach(G=>gT[G.id]=0);
+  const rows=ks.map(k=>{const c=monthCalc(k);inc+=c.incA;needs+=c.needs;wants+=c.wants;lend+=c.lending;dep+=S[k].dep;int+=S[k].int;GROUPS.forEach(G=>gT[G.id]+=c.g[G.id].a);
+    return {k,c,dep:S[k].dep,left:c.incA-c.needs-c.wants-c.lending-S[k].dep}});
   const lastK=ks[ks.length-1];const ef=S[lastK].ef.run;
   const anyData=ks.some(hasData);
   if(!anyData)return `<div class="panel empty"><h2>Nothing tracked yet</h2><p>Open the <a href="#month">Month</a> view and type in your income and spending. Totals and charts appear here as soon as you do.</p></div>`;
@@ -335,7 +336,7 @@ function viewOverview(){
     <div><span class="eyebrow">${label(ks[0])} – ${label(lastK)}</span><h2>Where the money went</h2></div>
     <div class="kpis">
       ${kpi('Income',fmt0(inc),`${ks.filter(k=>monthCalc(k).incA).length} months with income`)}
-      ${kpi('Spent',fmt0(needs+wants),`${fmt0(needs)} needs · ${fmt0(wants)} wants`)}
+      ${kpi('Spent',fmt0(needs+wants),`${fmt0(needs)} needs · ${fmt0(wants)} wants`+(lend?` · ${fmt0(lend)} lent out`:''))}
       ${capRules().length?(()=>{const capped=rows.filter(r=>capOf(r.k)&&(r.c.incA||r.c.wants)),ov=capped.filter(r=>r.c.wants>capOf(r.k));return kpi('Wants cap',`${ov.length} of ${capped.length}`,`months over their wants cap`,ov.length?'neg':'pos')})():''}
       ${kpi('Saved',fmt0(dep),`plus ${fmt(int)} interest earned`)}
       ${kpi('Emergency Fund',fmt0(ef),`${pct(ef/goalOf('ef'))} of the ${short(goalOf('ef'))} goal`)}
@@ -364,7 +365,7 @@ function viewOverview(){
     <h3>Month by month</h3>
     <div class="scroll"><table><thead><tr><th>Month</th><th>Income</th><th>Needs</th><th>Wants</th><th>Saved</th><th>Left over</th></tr></thead><tbody>
     ${rows.map(r=>`<tr class="link" data-goto="${r.k}" tabindex="0"><td>${label(r.k)}</td><td>${fmt(r.c.incA)}</td><td>${fmt(r.c.needs)}</td><td class="${capOf(r.k)&&r.c.wants>capOf(r.k)?'neg':''}">${fmt(r.c.wants)}${capWarn(r.c.wants,r.k)}</td><td class="${r.dep<0?'neg':''}">${fmt(r.dep)}</td><td class="${r.left<0?'neg':''}">${fmt(r.left)}</td></tr>`).join('')}
-    </tbody><tfoot><tr><td>Total</td><td>${fmt(inc)}</td><td>${fmt(needs)}</td><td>${fmt(wants)}</td><td>${fmt(dep)}</td><td class="${inc-needs-wants-dep<0?'neg':''}">${fmt(inc-needs-wants-dep)}</td></tr></tfoot></table></div>
+    </tbody><tfoot><tr><td>Total</td><td>${fmt(inc)}</td><td>${fmt(needs)}</td><td>${fmt(wants)}</td><td>${fmt(dep)}</td><td class="${inc-needs-wants-lend-dep<0?'neg':''}">${fmt(inc-needs-wants-lend-dep)}</td></tr></tfoot></table></div>
     <p class="hint">Left over = income − needs − wants − net savings deposits. Negative months are when savings or spending came out of money already in the bank.</p>
   </section>
   ${wantsSection(ks)}`;
@@ -404,7 +405,7 @@ function numInput(id,val,attrs){return `<input class="num" id="${id}" inputmode=
 
 function viewMonth(){
   const k=curMonth,d=months[k]||{},c=monthCalc(k),S=savingsSeries()[k],i=KEYS.indexOf(k),PJ=projection(),tgt=PJ&&PJ.byKey[k];
-  const outflow=c.needs+c.wants+S.dep, left=c.incA-outflow;
+  const outflow=c.needs+c.wants+c.lending+S.dep, left=c.incA-outflow;
   const mix=[['Needs',c.needs,.5,'--s1'],['Wants',c.wants,.3,'--s5'],['Savings',S.dep,.2,'--s6']];
   const groupTable=G=>{const list=cats().filter(x=>x.group===G.id);const t=c.g[G.id];
     return `<section class="panel"><div class="row" style="justify-content:space-between"><h3><span class="sw" style="background:var(${G.c});margin-right:8px"></span>${G.name}</h3><span class="muted">${fmt(t.a)} of ${fmt(t.b)}${G.id==='wants'&&capOf(k)?` · cap ${fmt0(capOf(k))}${capInfo(k).carry?` (incl. ${fmt0(capInfo(k).carry)} carried over)`:''}`:''}</span></div>
@@ -423,7 +424,7 @@ function viewMonth(){
   ${capOf(k)&&c.wants>capOf(k)?`<div class="warn" role="alert"><b>Wants are over your cap.</b> You've spent ${fmt(c.wants)} on wants in ${label(k)}, which is ${fmt(c.wants-capOf(k))} over your ${fmt0(capOf(k))} limit for the month${capInfo(k).carry?` (${fmt0(capInfo(k).base)} plus ${fmt0(capInfo(k).carry)} carried over)`:''}.</div>`:''}
   <div class="kpis">
     ${kpi('Income',fmt(c.incA),`expected ${fmt(c.incE)}`)}
-    ${kpi('Spent',fmt(c.needs+c.wants),`${fmt(c.needs)} needs · ${fmt(c.wants)} wants`+(capOf(k)?` (cap ${fmt0(capOf(k))})`:''))}
+    ${kpi('Spent',fmt(c.needs+c.wants),`${fmt(c.needs)} needs · ${fmt(c.wants)} wants`+(c.lending?` · ${fmt(c.lending)} lent out`:'')+(capOf(k)?` (cap ${fmt0(capOf(k))})`:''))}
     ${kpi('Saved',fmt(S.dep),'net deposits to your goal accounts',S.dep<0?'neg':'')}
     ${kpi('Left over',fmt(left),left<0?'overspent: came from money already saved':'after spending and savings',left<0?'neg':'pos')}
   </div>
@@ -532,11 +533,11 @@ function projection(){
   const lastActual=lastI>=0?KEYS[lastI]:null;
   return {salary,left,share,rows,byKey:plan,start:KEYS[startI],baseK:KEYS[startI-1],lastActual,G,hits:{ef:hit('ef'),house:hit('house'),biz:hit('biz')}};
 }
-// split each month's actual left over (income − needs − wants) by the plan's rules
+// split each month's actual left over (income − needs − wants − lending) by the plan's rules
 function leftoverSplit(share){
   const S=savingsSeries();
   return activeKeys().map(k=>{const c=monthCalc(k);if(!c.incA)return null;const i=KEYS.indexOf(k);const prev=i>0?S[KEYS[i-1]]:null;
-    const left=c.incA-c.needs-c.wants,pos=Math.max(left,0);
+    const left=c.incA-c.needs-c.wants-c.lending,pos=Math.max(left,0);
     const room=Math.max(0,goalOf('ef')-(prev?prev.ef.run:0));const ef=Math.min(pos,room),rest=pos-ef;
     return {k,left,ef,house:rest*share,biz:rest*(1-share),saved:S[k].dep}}).filter(Boolean);
 }
