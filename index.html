@@ -52,6 +52,7 @@ nav a{color:var(--muted);text-decoration:none;font-weight:600;padding:7px 14px;b
 nav a:hover{color:var(--ink);background:var(--sunk)}
 nav a[aria-current="page"]{background:var(--accent);color:var(--accent-ink)}
 .modebtn{padding:5px 10px;font-size:12px;color:var(--muted)}
+.modegrp{display:flex;align-items:center;gap:8px}.today{font-size:12px;color:var(--muted);white-space:nowrap}
 .status{font-size:12px;color:var(--muted);min-width:70px;text-align:right}
 main{padding-block:24px 64px;display:grid;gap:28px}
 .show-sm{display:none}
@@ -64,7 +65,7 @@ main{padding-block:24px 64px;display:grid;gap:28px}
   main{padding-bottom:calc(100px + env(safe-area-inset-bottom,0px))}
   header .wrap{padding-block:10px}
   .brand{font-size:22px}
-  .modebtn{margin-left:auto}
+  .modegrp{margin-left:auto}
 }
 h2{font:700 22px/1.2 var(--display);margin:0;text-wrap:balance}
 h3{font:600 17px/1.3 var(--display);margin:0}
@@ -188,6 +189,7 @@ form.payform button{grid-column:1/-1}
   const phHour=()=>+new Intl.DateTimeFormat('en-US',{timeZone:'Asia/Manila',hour:'numeric',hourCycle:'h23'}).format(new Date());
   let pref='auto';try{pref=localStorage.getItem('moolah-mode')||'auto'}catch(_){}
   function apply(){const h=phHour(),m=pref==='auto'?(h>=6&&h<18?'light':'dark'):pref;const r=document.documentElement;r.dataset.ph=m;r.style.colorScheme=m;
+    const t=document.getElementById('today');if(t)t.textContent=new Intl.DateTimeFormat('en-PH',{timeZone:'Asia/Manila',weekday:'short',month:'short',day:'numeric',year:'numeric'}).format(new Date());
     const b=document.getElementById('modebtn');if(b)b.textContent=pref==='auto'?`Auto · PH time ${m==='light'?'☀':'☾'}`:m==='light'?'Light ☀':'Dark ☾'}
   apply();setInterval(apply,60000);
   document.addEventListener('DOMContentLoaded',()=>{apply();document.getElementById('modebtn')?.addEventListener('click',()=>{pref=pref==='auto'?'light':pref==='light'?'dark':'auto';try{localStorage.setItem('moolah-mode',pref)}catch(_){}apply()})});
@@ -203,7 +205,7 @@ form.payform button{grid-column:1/-1}
     <a href="#lending" data-v="lending">Lending</a>
     <a href="#bigplans" data-v="bigplans"><span class="hide-sm">Sinking Funds</span><span class="show-sm">Sinking</span></a>
   </nav>
-  <button class="modebtn" id="modebtn" type="button" title="Switch between automatic (Philippine time), light and dark">Auto</button>
+  <div class="modegrp"><span class="today" id="today"></span><button class="modebtn" id="modebtn" type="button" title="Switch between automatic (Philippine time), light and dark">Auto</button></div>
   <span class="status" id="status" aria-live="polite"></span>
 </div></header>
 
