@@ -344,7 +344,7 @@ function viewOverview(){
     <div class="kpis">
       ${kpi('Income',fmt0(inc),`${ks.filter(k=>monthCalc(k).incA).length} months with income`)}
       ${kpi('Spent',fmt0(needs+wants),`${fmt0(needs)} needs · ${fmt0(wants)} wants`+(lend?` · ${fmt0(lend)} lent out`:''))}
-      ${capRules().length?(()=>{const capped=rows.filter(r=>capOf(r.k)&&(r.c.incA||r.c.wants)),ov=capped.filter(r=>r.c.wants>capOf(r.k));return kpi('Wants cap',`${ov.length} of ${capped.length}`,`months over their wants cap`,ov.length?'neg':'pos')})():''}
+      ${(()=>{const net=inc-needs-wants-lend;return kpi('Income minus expenses',fmt0(net),`actual income less needs, wants${lend?' and lending':''}`,net<0?'neg':'pos')})()}
       ${kpi('Saved',fmt0(dep),`plus ${fmt(int)} interest earned`)}
       ${kpi('Emergency Fund',fmt0(ef),`${pct(ef/goalOf('ef'))} of the ${short(goalOf('ef'))} goal`)}
     </div>
@@ -575,7 +575,7 @@ function viewPlan(){
       ${kpi('Monthly salary',fmt0(PJ.salary),'paid to yourself on the 1st')}
       ${kpi('Expected income',fmt0(P.expectedIncome),esc(P.incomeNote||'typical month'))}
       ${kpi('Left for goals',fmt0(PJ.left),'each month, after the salary')}
-      ${(()=>{const r=capRules().slice(-1)[0];return kpi('Wants cap',r?fmt0(r.amount):'None',r?`a month from ${label(r.from)}${r.carry?'; unspent wants money carries over to the next month':''}`:'set one in Plan settings')})()}
+      ${(()=>{const r=capRules().slice(-1)[0];return kpi('Wants cap',r?fmt0(r.amount):'None',r?`a month from ${label(r.from)}${r.carry==='fund'?'; unspent wants money goes to Sinking Funds':r.carry?'; unspent wants money carries over to the next month':''}`:'set one in Plan settings')})()}
     </div>
   </section>
   ${sm?`<section class="panel"><div class="monthbar"><div><h3>Where this month's left over goes</h3><p class="hint" style="margin:0">Actual left over = income − needs − wants. Emergency Fund first until it hits ${fmt0(goalOf('ef'))}, then ${pct(PJ.share)} Dream House and ${pct(1-PJ.share)} Business Venture.</p></div>
