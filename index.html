@@ -366,7 +366,7 @@ function viewOverview(){
   const ks=activeKeys(),S=savingsSeries();
   let inc=0,needs=0,wants=0,lend=0,dep=0,int=0;const gT={};GROUPS.forEach(G=>gT[G.id]=0);
   const rows=ks.map(k=>{const c=monthCalc(k);inc+=c.incA;needs+=c.needs;wants+=c.wants;lend+=c.lending;dep+=S[k].dep;int+=S[k].int;GROUPS.forEach(G=>gT[G.id]+=c.g[G.id].a);
-    return {k,c,dep:S[k].dep,left:c.incA-c.needs-c.wants-c.lending-S[k].dep}});
+    return {k,c,dep:S[k].dep,int:S[k].int,left:c.incA-c.needs-c.wants-c.lending-S[k].dep}});
   const lastK=ks[ks.length-1];const ef=S[lastK].ef.run;
   const anyData=ks.some(hasData);
   if(!anyData)return `<div class="panel empty"><h2>Nothing tracked yet</h2><p>Open the <a href="#month">Month</a> view and type in your income and spending. Totals and charts appear here as soon as you do.</p></div>`;
@@ -410,9 +410,9 @@ function viewOverview(){
   </div>
   <section class="panel">
     <h3>Month by month</h3>
-    <div class="scroll"><table><thead><tr><th>Month</th><th>Income</th><th>Needs</th><th>Wants</th><th>Lending</th><th>Total spent</th><th>Saved</th><th>Left over</th></tr></thead><tbody>
-    ${rows.map(r=>`<tr class="link" data-goto="${r.k}" tabindex="0"><td>${label(r.k)}</td><td>${fmt(r.c.incA)}</td><td>${fmt(r.c.needs)}</td><td class="${capOf(r.k)&&r.c.wants>capOf(r.k)?'neg':''}">${fmt(r.c.wants)}${capWarn(r.c.wants,r.k)}</td><td>${fmt(r.c.lending)}</td><td><b>${fmt(r.c.needs+r.c.wants+r.c.lending)}</b></td><td class="${r.dep<0?'neg':''}">${fmt(r.dep)}</td><td class="${r.left<0?'neg':''}">${fmt(r.left)}</td></tr>`).join('')}
-    </tbody><tfoot><tr><td>Total</td><td>${fmt(inc)}</td><td>${fmt(needs)}</td><td>${fmt(wants)}</td><td>${fmt(lend)}</td><td><b>${fmt(needs+wants+lend)}</b></td><td>${fmt(dep)}</td><td class="${inc-needs-wants-lend-dep<0?'neg':''}">${fmt(inc-needs-wants-lend-dep)}</td></tr></tfoot></table></div>
+    <div class="scroll"><table><thead><tr><th>Month</th><th>Income</th><th>Needs</th><th>Wants</th><th>Lending</th><th>Total spent</th><th>Saved</th><th>Interest</th><th>Left over</th></tr></thead><tbody>
+    ${rows.map(r=>`<tr class="link" data-goto="${r.k}" tabindex="0"><td>${label(r.k)}</td><td>${fmt(r.c.incA)}</td><td>${fmt(r.c.needs)}</td><td class="${capOf(r.k)&&r.c.wants>capOf(r.k)?'neg':''}">${fmt(r.c.wants)}${capWarn(r.c.wants,r.k)}</td><td>${fmt(r.c.lending)}</td><td><b>${fmt(r.c.needs+r.c.wants+r.c.lending)}</b></td><td class="${r.dep<0?'neg':''}">${fmt(r.dep)}</td><td>${fmt(r.int)}</td><td class="${r.left<0?'neg':''}">${fmt(r.left)}</td></tr>`).join('')}
+    </tbody><tfoot><tr><td>Total</td><td>${fmt(inc)}</td><td>${fmt(needs)}</td><td>${fmt(wants)}</td><td>${fmt(lend)}</td><td><b>${fmt(needs+wants+lend)}</b></td><td>${fmt(dep)}</td><td>${fmt(int)}</td><td class="${inc-needs-wants-lend-dep<0?'neg':''}">${fmt(inc-needs-wants-lend-dep)}</td></tr></tfoot></table></div>
     <p class="hint">Left over = income − needs − wants − net savings deposits. Negative months are when savings or spending came out of money already in the bank.</p>
   </section>
   ${wantsSection(ks)}`;
@@ -475,6 +475,7 @@ function viewMonth(){
     ${kpi('Income',fmt(c.incA),`expected ${fmt(c.incE)}`)}
     ${kpi('Spent',fmt(c.needs+c.wants+c.lending),`${fmt(c.needs)} needs · ${fmt(c.wants)} wants`+(c.lending?` · ${fmt(c.lending)} lent out`:'')+(capOf(k)?` (cap ${fmt0(capOf(k))})`:''))}
     ${kpi('Saved',fmt(S.dep),'net deposits to your goal accounts',S.dep<0?'neg':'')}
+    ${kpi('Interest earned',fmt(S.int),S.int?ACCOUNTS.filter(A=>S[A.id].int).map(A=>`${A.name} ${fmt(S[A.id].int)}`).join(' · '):'type it in Savings balances below','pos')}
     ${kpi('Left over',fmt(left),left<0?'overspent: came from money already saved':'after spending and savings',left<0?'neg':'pos')}
   </div>
   ${salarySection(k)}
