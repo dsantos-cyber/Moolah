@@ -865,12 +865,29 @@ function firestoreDb(fs,uid){
       get:()=>ref(p).get().then(wrap)})};
 }
 const foot=document.getElementById('foot');
+const AUTH_ERR={'auth/invalid-credential':'Wrong email or password.','auth/wrong-password':'Wrong email or password.','auth/user-not-found':'No account with that email yet. Tap Create account.',
+  'auth/email-already-in-use':'That email already has an account. Tap Sign in instead, or use Google.','auth/weak-password':'Use a password with at least 6 characters.',
+  'auth/invalid-email':'That email doesn\'t look right.','auth/operation-not-allowed':'Email sign-in isn\'t switched on in Firebase yet.','auth/unauthorized-domain':'This website isn\'t on the Firebase authorized domains list yet.',
+  'auth/popup-closed-by-user':'The Google window was closed before signing in.'};
+const authMsg=e=>AUTH_ERR[e&&e.code]||(e&&e.message)||'Sign-in failed.';
 function signInView(msg){
-  app.innerHTML=`<div class="panel empty" style="display:grid;gap:14px;justify-items:center"><h2>Welcome to MOOLAAAAAAH!!</h2><p>Sign in with your Google account to see your tracker. Only you can read your data.</p>
-  ${msg?`<p class="neg">${esc(msg)}</p>`:''}<button class="primary" id="signin">Sign in with Google</button></div>`;
-  document.getElementById('signin').addEventListener('click',()=>{const p=new firebase.auth.GoogleAuthProvider();
-    const standalone=matchMedia('(display-mode: standalone)').matches||navigator.standalone;
-    (standalone?firebase.auth().signInWithRedirect(p):firebase.auth().signInWithPopup(p)).catch(e=>signInView(e.message))});
+  app.innerHTML=`<div class="panel empty" style="display:grid;gap:14px;justify-items:center;max-width:380px;margin:0 auto"><h2>Welcome to MOOLAAAAAAH!!</h2><p>Sign in to see your tracker. Only you can read your data.</p>
+  ${msg?`<p class="neg">${esc(msg)}</p>`:''}<button class="primary" id="signin">Sign in with Google</button>
+  <p class="hint">or use your email and a password</p>
+  <form id="emailform" style="display:grid;gap:8px;width:100%">
+    <input class="txt" type="email" id="em" placeholder="Email" autocomplete="username" required>
+    <input class="txt" type="password" id="pw" placeholder="Password (6+ characters)" autocomplete="current-password" minlength="6" required>
+    <div style="display:flex;gap:8px;justify-content:center"><button class="primary" type="submit">Sign in</button><button type="button" id="create">Create account</button></div>
+    <button type="button" class="link" id="reset">Forgot password?</button>
+  </form></div>`;
+  const auth=firebase.auth(),em=()=>document.getElementById('em').value.trim(),pw=()=>document.getElementById('pw').value;
+  document.getElementById('signin').addEventListener('click',()=>{const p=new firebase.auth.GoogleAuthProvider();p.setCustomParameters({prompt:'select_account'});
+    // popup works on Safari and iPhone; redirect is only a fallback because Safari blocks the storage it needs
+    auth.signInWithPopup(p).catch(e=>{if(['auth/popup-blocked','auth/operation-not-supported-in-this-environment','auth/cancelled-popup-request'].includes(e.code))return auth.signInWithRedirect(p);throw e}).catch(e=>signInView(authMsg(e)))});
+  document.getElementById('emailform').addEventListener('submit',e=>{e.preventDefault();auth.signInWithEmailAndPassword(em(),pw()).catch(e=>signInView(authMsg(e)))});
+  document.getElementById('create').addEventListener('click',()=>{if(!document.getElementById('emailform').reportValidity())return;auth.createUserWithEmailAndPassword(em(),pw()).catch(e=>signInView(authMsg(e)))});
+  document.getElementById('reset').addEventListener('click',()=>{if(!em())return signInView('Type your email first, then tap Forgot password.');
+    auth.sendPasswordResetEmail(em()).then(()=>signInView('Password reset email sent. Check your inbox.')).catch(e=>signInView(authMsg(e)))});
 }
 function importView(){
   app.innerHTML=`<div class="panel empty" style="display:grid;gap:14px;justify-items:center"><h2>Bring in your data</h2>
@@ -891,6 +908,7 @@ function exportData(){const out={months,loans,settings:{main:settings}};const bl
   const fs=firebase.firestore();
   try{await fs.enablePersistence({synchronizeTabs:true})}catch(_){}
   let unsub=[];
+  firebase.auth().getRedirectResult().catch(e=>signInView(authMsg(e)));
   firebase.auth().onAuthStateChanged(u=>{
     unsub.forEach(f=>f());unsub=[];loaded=false;months={};loans={};settings={sources:{},customCats:[],goals:{}};
     if(!u){foot.hidden=true;signInView();return}

@@ -1,5 +1,5 @@
 // Keeps the app opening offline: pages network-first, everything else cache-first.
-const CACHE = 'moolah-v2';
+const CACHE = 'moolah-v3';
 const SHELL = ['./', 'index.html', 'config.js', 'manifest.webmanifest', 'icons/icon-192.png', 'icons/icon-512.png'];
 
 self.addEventListener('install', e => {
