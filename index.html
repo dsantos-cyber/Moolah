@@ -408,9 +408,9 @@ function viewOverview(){
   </div>
   <section class="panel">
     <h3>Month by month</h3>
-    <div class="scroll"><table><thead><tr><th>Month</th><th>Income</th><th>Needs</th><th>Wants</th><th>Saved</th><th>Left over</th></tr></thead><tbody>
-    ${rows.map(r=>`<tr class="link" data-goto="${r.k}" tabindex="0"><td>${label(r.k)}</td><td>${fmt(r.c.incA)}</td><td>${fmt(r.c.needs)}</td><td class="${capOf(r.k)&&r.c.wants>capOf(r.k)?'neg':''}">${fmt(r.c.wants)}${capWarn(r.c.wants,r.k)}</td><td class="${r.dep<0?'neg':''}">${fmt(r.dep)}</td><td class="${r.left<0?'neg':''}">${fmt(r.left)}</td></tr>`).join('')}
-    </tbody><tfoot><tr><td>Total</td><td>${fmt(inc)}</td><td>${fmt(needs)}</td><td>${fmt(wants)}</td><td>${fmt(dep)}</td><td class="${inc-needs-wants-lend-dep<0?'neg':''}">${fmt(inc-needs-wants-lend-dep)}</td></tr></tfoot></table></div>
+    <div class="scroll"><table><thead><tr><th>Month</th><th>Income</th><th>Needs</th><th>Wants</th><th>Lending</th><th>Total spent</th><th>Saved</th><th>Left over</th></tr></thead><tbody>
+    ${rows.map(r=>`<tr class="link" data-goto="${r.k}" tabindex="0"><td>${label(r.k)}</td><td>${fmt(r.c.incA)}</td><td>${fmt(r.c.needs)}</td><td class="${capOf(r.k)&&r.c.wants>capOf(r.k)?'neg':''}">${fmt(r.c.wants)}${capWarn(r.c.wants,r.k)}</td><td>${fmt(r.c.lending)}</td><td><b>${fmt(r.c.needs+r.c.wants+r.c.lending)}</b></td><td class="${r.dep<0?'neg':''}">${fmt(r.dep)}</td><td class="${r.left<0?'neg':''}">${fmt(r.left)}</td></tr>`).join('')}
+    </tbody><tfoot><tr><td>Total</td><td>${fmt(inc)}</td><td>${fmt(needs)}</td><td>${fmt(wants)}</td><td>${fmt(lend)}</td><td><b>${fmt(needs+wants+lend)}</b></td><td>${fmt(dep)}</td><td class="${inc-needs-wants-lend-dep<0?'neg':''}">${fmt(inc-needs-wants-lend-dep)}</td></tr></tfoot></table></div>
     <p class="hint">Left over = income − needs − wants − net savings deposits. Negative months are when savings or spending came out of money already in the bank.</p>
   </section>
   ${wantsSection(ks)}`;
