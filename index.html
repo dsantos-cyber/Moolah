@@ -112,6 +112,11 @@ button:hover{background:var(--sunk)}
 button.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
 button.link{border:0;background:none;padding:2px 0;color:var(--accent);font-weight:600}
 .row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.stick{position:sticky;top:calc(var(--hdr,64px) + env(safe-area-inset-top,0px));z-index:4;background:var(--bg);margin-inline:-16px;padding:8px 16px;display:grid;gap:8px;border-bottom:1px solid transparent}
+.stick.on{border-bottom-color:var(--line);box-shadow:0 6px 12px -10px rgba(0,0,0,.35)}
+.stick[hidden],.mini[hidden]{display:none!important}
+.mini{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}.mini::-webkit-scrollbar{display:none}
+.mini .kpi{flex:0 0 auto;padding:6px 12px;border-radius:10px;gap:0}.mini .kpi .v{font-size:16px}.mini .kpi .s{display:none}.mini .kpi .eyebrow{font-size:10px}
 .monthbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between}
 .monthbar .row h2{min-width:150px;text-align:center}
 .grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:16px;align-items:start}
@@ -322,9 +327,22 @@ function render(){
   // give each section and number card its own pastel
   app.querySelectorAll('.panel').forEach((el,i)=>el.style.setProperty('--tint',`var(--t${i%6+1})`));
   app.querySelectorAll('.kpis').forEach(g=>g.querySelectorAll('.kpi').forEach((el,i)=>el.style.setProperty('--tint',`var(--t${(i+1)%6+1})`)));
+  pinTop();
   if(keep){const el=document.getElementById(keep.id);if(el){if(keep.dirty)el.value=keep.val;el.focus({preventScroll:true});try{el.setSelectionRange(keep.s,keep.e)}catch(_){}}}
 }
 
+// keep the month picker and a compact copy of the first row of boxes pinned under the header while scrolling
+function pinTop(){
+  const mb=app.querySelector(':scope > .monthbar'),k=app.querySelector('.kpis');if(!mb&&!k)return;
+  const st=document.createElement('div');st.className='stick';
+  if(mb){mb.before(st);st.appendChild(mb)}else{let top=k;while(top.parentElement!==app)top=top.parentElement;top.after(st)}
+  if(k){const mini=k.cloneNode(true);mini.className='mini';mini.hidden=true;mini.removeAttribute('id');st.appendChild(mini)}
+  pinCheck()}
+function pinCheck(){const st=app.querySelector('.stick');if(!st)return;const h=document.querySelector('header');document.documentElement.style.setProperty('--hdr',h.offsetHeight+'px');
+  const mini=st.querySelector('.mini'),k=app.querySelector('.kpis:not(.mini)');const line=h.getBoundingClientRect().bottom+(st.querySelector('.monthbar')?.offsetHeight||0)+16;
+  const show=!!(k&&k.getBoundingClientRect().bottom<line);if(mini)mini.hidden=!show;
+  st.hidden=!st.querySelector('.monthbar')&&!show;st.classList.toggle('on',st.getBoundingClientRect().top<=h.getBoundingClientRect().bottom+1&&(show||window.scrollY>0))}
+window.addEventListener('scroll',pinCheck,{passive:true});window.addEventListener('resize',pinCheck);
 function kpi(label,v,s,cls=''){return `<div class="kpi"><span class="eyebrow">${label}</span><span class="v ${cls}">${v}</span><span class="s">${s}</span></div>`}
 
 // does income − expenses line up with what went into savings, and does the tracker match the real bank total?
