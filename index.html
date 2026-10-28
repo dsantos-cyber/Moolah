@@ -59,7 +59,7 @@ main{padding-block:24px 64px;display:grid;gap:28px}
 @media (max-width:640px){
   nav{position:fixed;left:0;right:0;bottom:0;z-index:6;margin:0;flex-wrap:nowrap;gap:2px;background:var(--surface);border-top:1px solid var(--line);
     padding:6px max(8px,env(safe-area-inset-right,0px)) calc(6px + env(safe-area-inset-bottom,0px)) max(8px,env(safe-area-inset-left,0px))}
-  nav a{flex:1;text-align:center;padding:10px 2px;font-size:13px;border-radius:12px}
+  nav a{flex:1;min-width:0;text-align:center;padding:9px 1px;font-size:12px;line-height:1.2;border-radius:12px}
   nav .show-sm{display:inline}
   main{padding-bottom:calc(100px + env(safe-area-inset-bottom,0px))}
   header .wrap{padding-block:10px}
@@ -196,11 +196,12 @@ form.payform button{grid-column:1/-1}
 <header><div class="wrap">
   <p class="brand">MOOLAAAAAAH!!<small>Personal expense tracker · Philippine peso (₱)</small></p>
   <nav aria-label="Views">
-    <a href="#overview" data-v="overview">Overview</a>
+    <a href="#overview" data-v="overview"><span class="hide-sm">Overview</span><span class="show-sm">Home</span></a>
     <a href="#month" data-v="month">Month</a>
     <a href="#goals" data-v="goals"><span class="hide-sm">Savings goals</span><span class="show-sm">Goals</span></a>
     <a href="#plan" data-v="plan"><span class="hide-sm">Savings plan</span><span class="show-sm">Plan</span></a>
     <a href="#lending" data-v="lending">Lending</a>
+    <a href="#bigplans" data-v="bigplans"><span class="hide-sm">Big Plans Fund</span><span class="show-sm">Big plans</span></a>
   </nav>
   <button class="modebtn" id="modebtn" type="button" title="Switch between automatic (Philippine time), light and dark">Auto</button>
   <span class="status" id="status" aria-live="polite"></span>
@@ -308,7 +309,7 @@ function render(){
   document.querySelectorAll('nav a').forEach(x=>{if(x.dataset.v===view)x.setAttribute('aria-current','page');else x.removeAttribute('aria-current')});
   if(!loaded){return}
   capMemo={};
-  app.innerHTML=view==='month'?viewMonth():view==='goals'?viewGoals():view==='plan'?viewPlan():view==='lending'?viewLending():viewOverview();
+  app.innerHTML=view==='month'?viewMonth():view==='goals'?viewGoals():view==='plan'?viewPlan():view==='lending'?viewLending():view==='bigplans'?viewBigPlans():viewOverview();
   wire();
   // give each section and number card its own pastel
   app.querySelectorAll('.panel').forEach((el,i)=>el.style.setProperty('--tint',`var(--t${i%6+1})`));
@@ -409,7 +410,7 @@ function viewMonth(){
   const mix=[['Needs',c.needs,.5,'--s1'],['Wants',c.wants,.3,'--s5'],['Savings',S.dep,.2,'--s6']];
   const groupTable=G=>{const list=cats().filter(x=>x.group===G.id);const t=c.g[G.id];
     return `<section class="panel"><div class="row" style="justify-content:space-between"><h3><span class="sw" style="background:var(${G.c});margin-right:8px"></span>${G.name}</h3><span class="muted">${fmt(t.a)} of ${fmt(t.b)}${G.id==='wants'&&capOf(k)?` · cap ${fmt0(capOf(k))}${capInfo(k).carry?` (incl. ${fmt0(capInfo(k).carry)} carried over)`:''}`:''}</span></div>
-    ${G.id==='wants'&&capOf(k)?capBar(t.a,k):''}
+    ${G.id==='wants'&&capOf(k)?capBar(t.a,k)+shopBar(k):''}
     <div class="scroll"><table><thead><tr><th>Category</th><th>Budget</th><th>Actual</th><th>Remaining</th></tr></thead><tbody>
     ${list.map(x=>{const it=d.items?.[x.id]||{};const rem=(it.budget||0)-(it.actual||0);
       return `<tr><td class="name">${esc(x.name)}</td><td>${numInput('b-'+x.id,it.budget,`data-f="item" data-c="${x.id}" data-k="budget" aria-label="${esc(x.name)} budget"`)}</td><td>${numInput('a-'+x.id,it.actual,`data-f="item" data-c="${x.id}" data-k="actual" aria-label="${esc(x.name)} actual"`)}</td><td class="${rem<0?'neg':''}">${fmt(rem)}${rem<0?'<span class="chip">over</span>':''}</td></tr>`}).join('')}
@@ -504,10 +505,17 @@ const capRules=()=>settings.wantsCaps||(settings.wantsCap?[{from:KEYS[0],amount:
 const wantsCap=()=>{const r=capRules().filter(x=>x.from<=NOWKEY).pop()||capRules()[0];return r?r.amount:0};
 // a month's wants cap: its rule's amount plus whatever was left unspent last month when the rule carries over
 function capInfo(k){if(capMemo[k])return capMemo[k];const rule=capRules().filter(x=>x.from<=k).pop();let out={base:0,carry:0,cap:0,rollover:false};
-  if(rule){let carry=0;const i=KEYS.indexOf(k);if(rule.carry&&i>0&&KEYS[i-1]>=rule.from){const pk=KEYS[i-1],pi=capInfo(pk);carry=Math.max(0,pi.cap-monthCalc(pk).wants)}
-    out={base:rule.amount,carry,cap:rule.amount+carry,rollover:!!rule.carry}}
+  if(rule){let carry=0;const i=KEYS.indexOf(k);if(rule.carry===true&&i>0&&KEYS[i-1]>=rule.from){const pk=KEYS[i-1],pi=capInfo(pk);carry=Math.max(0,pi.cap-monthCalc(pk).wants)}
+    out={base:rule.amount,carry,cap:rule.amount+carry,rollover:rule.carry===true,toFund:rule.carry==='fund'}}
   return capMemo[k]=out}
 const capOf=k=>capInfo(k).cap;
+// all shopping categories together have their own limit inside the wants cap
+const isShopping=c=>c.group==='wants'&&(/^shopping/i.test(c.id)||/^shopping/i.test(c.name));
+const shopRule=k=>(settings.shoppingCaps||[]).filter(x=>x.from<=k).pop();
+const shopOf=k=>shopRule(k)?.amount||0;
+const shopSpent=k=>cats().filter(isShopping).reduce((s,c)=>s+(months[k]?.items?.[c.id]?.actual||0),0);
+function shopBar(k){const cap=shopOf(k);if(!cap)return '';const w=shopSpent(k),p=w/cap;
+  return `<div class="capbar"><div class="track"><i style="width:${Math.min(p,1)*100}%;background:var(${p>1?'--over':'--s4'})"></i></div><span class="${p>1?'neg':'muted'}">Shopping: ${fmt0(w)} of ${fmt0(cap)}${p>1?` · ${fmt0(w-cap)} over`:''}</span></div>`}
 function capWarn(w,k){const cap=capOf(k);return cap&&w>cap?`<span class="chip">${fmt0(w-cap)} over cap</span>`:''}
 function runPlan(fromI,base,left,salary,share,G,buffer){
   const out={};KEYS.slice(fromI).forEach((k,n)=>{const cum=Math.max(0,(n+1)*left-(buffer?salary:0));const over=Math.max(0,base.ef+cum-G.ef);
@@ -751,6 +759,68 @@ function wireLending(){
   if(pendingFocus){const el=document.getElementById(pendingFocus);pendingFocus=null;if(el){el.scrollIntoView({block:'center'});el.focus({preventScroll:true})}}
 }
 
+// ---------- Big Plans Fund: unspent wants cap from each finished month ----------
+let bpSpendFor=null;
+const BP_DEFAULT=[['travel','Travel'],['masteral','Masteral / Preceptorship (Oral Surgery)'],['gadget','Gadget upgrade'],['family-celebration','Family celebration']];
+function bpInflows(){const out=[];for(const k of KEYS){const ci=capInfo(k);if(!ci.toFund||k>=NOWKEY)continue;
+  // only months that have ended; a month with nothing entered still counts once it's over
+  out.push({k,cap:ci.cap,wants:monthCalc(k).wants,in:Math.max(0,ci.cap-monthCalc(k).wants)})}return out}
+function bpState(){const B=settings.bigPlans||{buckets:[],spends:[]};const inflows=bpInflows();const total=inflows.reduce((s,r)=>s+r.in,0);
+  const w=B.buckets.reduce((s,b)=>s+(b.share??1),0)||1;
+  const rows=B.buckets.map(b=>{const alloc=total*(b.share??1)/w,spent=(B.spends||[]).filter(x=>x.bucket===b.id).reduce((s,x)=>s+x.amount,0);return {...b,alloc,spent,bal:alloc-spent}});
+  return {B,inflows,total,rows,spent:rows.reduce((s,r)=>s+r.spent,0)}}
+function viewBigPlans(){
+  const {B,inflows,total,rows,spent}=bpState();const ci=capInfo(NOWKEY),cw=monthCalc(NOWKEY).wants;
+  const w=B.buckets.reduce((s,b)=>s+(b.share??1),0)||1;
+  return `
+  <section><div><span class="eyebrow">Big Plans Fund</span><h2>${fmt0(total-spent)} saved for big plans</h2></div>
+    <p class="hint" style="margin:4px 0 0">Whatever you don't use of your ${fmt0(ci.base||13100)} wants cap goes here at the end of each month, from ${label(B.start||'2026-11')}. It's split between your plans by their shares.</p>
+    <div class="kpis">
+      ${kpi('Added so far',fmt0(total),`${inflows.length} finished month${inflows.length===1?'':'s'}`,'pos')}
+      ${kpi('Used',fmt0(spent),`${(B.spends||[]).length} purchase${(B.spends||[]).length===1?'':'s'}`)}
+      ${ci.toFund?kpi('This month so far',fmt0(Math.max(0,ci.cap-cw)),`would go in if ${label(NOWKEY)} ended today`):kpi('Starts',label(B.start||'2026-11'),'first month that adds to the fund')}
+    </div>
+  </section>
+  <div class="grid3">${rows.map(r=>{const goal=r.target||0,p=goal?Math.max(r.bal,0)/goal:0;return `<section class="panel" style="display:grid;gap:8px">
+    <div class="row" style="justify-content:space-between;gap:8px"><h3>${esc(r.name)}</h3>${canWrite&&!r.spent?`<button class="link" data-bprm="${r.id}">Remove</button>`:''}</div>
+    <b style="font:700 22px/1.2 var(--display)" class="${r.bal<0?'neg':''}">${fmt0(r.bal)}</b>
+    ${goal?`<span class="track"><i style="width:${Math.min(p,1)*100}%;background:var(--s6)"></i></span><span class="hint">${pct(p)} of the ${fmt0(goal)} goal${p>=1?' 🎉':''}</span>`:''}
+    <span class="hint">${pct((r.share??1)/w)} of the fund · ${fmt0(r.alloc)} in${r.spent?` · ${fmt0(r.spent)} used`:''}</span>
+    ${canWrite?`<div class="row" style="gap:8px;flex-wrap:wrap"><label class="hint">Goal ₱ <input class="txt" style="width:110px" data-bpgoal="${r.id}" data-calc inputmode="text" value="${r.target?editVal(r.target):''}" placeholder="optional"></label>
+      <label class="hint">Share <input class="txt" style="width:60px" data-bpshare="${r.id}" inputmode="numeric" value="${r.share??1}"></label></div>
+      ${bpSpendFor===r.id?`<form class="payform" data-bpspend="${r.id}" style="display:grid;gap:6px"><input class="txt" id="bps-what" placeholder="What did you buy?" required><input class="txt" id="bps-amt" data-calc inputmode="text" placeholder="Amount ₱" required><input class="txt" id="bps-date" type="date" value="${TODAY}"><div class="row" style="gap:8px"><button class="primary" type="submit">Save</button><button type="button" class="link" data-bpcancel>Cancel</button></div></form>`
+        :`<button type="button" data-bpuse="${r.id}">Use money from this</button>`}`:''}
+  </section>`}).join('')}</div>
+  ${canWrite?`<section class="panel"><h3>Add a plan</h3><form class="addcat" id="bpadd" style="display:flex;gap:8px;flex-wrap:wrap"><input class="txt" id="bp-name" placeholder="e.g. New car, Japan trip" required style="flex:1;min-width:180px"><button class="primary" type="submit">Add</button></form>
+    <p class="hint">Share sets how the fund is split: two plans with share 1 get half each; a plan with share 2 gets twice as much as one with share 1.</p></section>`:''}
+  <div class="grid2">
+    <section class="panel"><h3>Money in, month by month</h3>${inflows.length?`<div class="scroll"><table><thead><tr><th>Month</th><th>Wants cap</th><th>Spent</th><th>To the fund</th></tr></thead><tbody>
+      ${inflows.map(r=>`<tr><td>${label(r.k)}</td><td>${fmt0(r.cap)}</td><td class="${r.wants>r.cap?'neg':''}">${fmt0(r.wants)}</td><td class="pos">${fmt0(r.in)}</td></tr>`).join('')}</tbody></table></div>`:`<p class="hint">Nothing yet. ${label(B.start||'2026-11')} adds to the fund once it's over.</p>`}</section>
+    <section class="panel"><h3>Purchases from the fund</h3>${(B.spends||[]).length?`<div class="scroll"><table><thead><tr><th>What</th><th>Plan</th><th>Amount</th><th></th></tr></thead><tbody>
+      ${(B.spends||[]).map((x,i)=>`<tr><td class="name">${esc(x.label)}<br><span class="muted" style="font-size:12px">${esc(x.date||'')}</span></td><td>${esc(B.buckets.find(b=>b.id===x.bucket)?.name||'—')}</td><td>${fmt0(x.amount)}</td><td>${canWrite?`<button class="link" data-bpundo="${i}">Remove</button>`:''}</td></tr>`).join('')}</tbody></table></div>`:'<p class="hint">Tap "Use money from this" on a plan when you buy something with it. Don\'t also enter it in the Month tracker.</p>'}</section>
+  </div>`;
+}
+function wireBigPlans(){
+  const B=settings.bigPlans;if(!B||view!=='bigplans')return;
+  app.querySelectorAll('[data-bpuse]').forEach(b=>b.addEventListener('click',()=>{bpSpendFor=b.dataset.bpuse;render();document.getElementById('bps-what')?.focus()}));
+  app.querySelectorAll('[data-bpcancel]').forEach(b=>b.addEventListener('click',()=>{bpSpendFor=null;render()}));
+  app.querySelectorAll('form[data-bpspend]').forEach(f=>f.addEventListener('submit',e=>{e.preventDefault();const amt=num(document.getElementById('bps-amt').value),what=document.getElementById('bps-what').value.trim();if(!amt||!what)return;
+    B.spends=(B.spends||[]).concat([{bucket:f.dataset.bpspend,label:what,amount:amt,date:document.getElementById('bps-date').value||TODAY}]);bpSpendFor=null;saveSettings();render();setStatus(`Recorded ${fmt(amt)} from the fund`)}));
+  app.querySelectorAll('[data-bpundo]').forEach(b=>b.addEventListener('click',()=>{B.spends=B.spends.filter((_,i)=>i!==+b.dataset.bpundo);saveSettings();render()}));
+  app.querySelectorAll('[data-bprm]').forEach(b=>b.addEventListener('click',()=>{B.buckets=B.buckets.filter(x=>x.id!==b.dataset.bprm);saveSettings();render()}));
+  app.querySelectorAll('[data-bpgoal]').forEach(el=>el.addEventListener('change',()=>{const x=B.buckets.find(b=>b.id===el.dataset.bpgoal);if(!x)return;x.target=num(el.value)||0;saveSettings();render()}));
+  app.querySelectorAll('[data-bpshare]').forEach(el=>el.addEventListener('change',()=>{const x=B.buckets.find(b=>b.id===el.dataset.bpshare);if(!x)return;x.share=Math.max(0,num(el.value));saveSettings();render()}));
+  const f=document.getElementById('bpadd');if(f)f.addEventListener('submit',e=>{e.preventDefault();const name=document.getElementById('bp-name').value.trim();if(!name)return;
+    B.buckets.push({id:'b'+Date.now().toString(36),name,share:1,target:0});saveSettings();render();setStatus(`Added ${name}`)});
+}
+// one-time update (Oct 2026): ₱13,100 wants cap from Nov 2026, ₱3,000 shopping limit, unspent cap goes to the Big Plans Fund
+function migrateSettings(){
+  if(settings.bigPlans||!canWrite)return;
+  const rs=clone(capRules()).filter(r=>r.from<'2026-11');rs.push({from:'2026-11',amount:13100,carry:'fund'});settings.wantsCaps=rs;
+  settings.shoppingCaps=[{from:'2026-11',amount:3000}];
+  settings.bigPlans={start:'2026-11',buckets:BP_DEFAULT.map(([id,name])=>({id,name,share:1,target:0})),spends:[]};
+  saveSettings()}
+
 // ---------- wants cap & salary budget ----------
 let wantsMonth='all';
 function wantsSection(ks){
@@ -775,7 +845,7 @@ function wantsSection(ks){
     if(cap)svg+=`<line x1="${x0-6}" x2="${x0+bw+6}" y1="${y(cap)}" y2="${y(cap)}" stroke="var(--ink)" stroke-width="2" stroke-dasharray="4 3"/>`});
   svg+=`<line x1="${L}" x2="${W-R}" y1="${y(0)}" y2="${y(0)}" stroke="var(--muted)"/></svg>`;
   return `<section class="panel">
-    <div class="row" style="justify-content:space-between"><div><h3>Wants cap</h3><p class="hint" style="margin:0">${capRules().length?`${capRules().map(r=>`${fmt0(r.amount)} a month from ${label(r.from)}${r.carry?' (unspent carries over)':''}`).join(', then ')}. ${over.length} of ${rows.filter(r=>r.cap).length} months went over, by ${fmt0(over.reduce((s,r)=>s+r.w-r.cap,0))} in total.`:'No cap set. Add one in Savings plan settings.'}</p></div>
+    <div class="row" style="justify-content:space-between"><div><h3>Wants cap</h3><p class="hint" style="margin:0">${capRules().length?`${capRules().map(r=>`${fmt0(r.amount)} a month from ${label(r.from)}${r.carry==='fund'?' (unspent goes to the Big Plans Fund)':r.carry?' (unspent carries over)':''}`).join(', then ')}. ${over.length} of ${rows.filter(r=>r.cap).length} months went over, by ${fmt0(over.reduce((s,r)=>s+r.w-r.cap,0))} in total.`:'No cap set. Add one in Savings plan settings.'}</p></div>
       <div class="legend"><span><i class="sw" style="background:var(--s5)"></i>Within cap</span><span><i class="sw" style="background:var(--over)"></i>Over cap</span><span><i class="sw" style="background:var(--ink);height:2px"></i>Month's cap</span></div></div>
     <div class="chart">${svg}</div>
     <div class="row" style="justify-content:space-between;margin-top:6px"><h3>Where your wants money went</h3>
@@ -809,7 +879,7 @@ function salarySection(k){
 
 // ---------- interactions ----------
 function wire(){
-  wireLending();
+  wireLending();wireBigPlans();
   const wp=document.getElementById('wantspick');if(wp)wp.addEventListener('change',()=>{wantsMonth=wp.value;render()});
   app.querySelectorAll('[data-wm]').forEach(el=>el.addEventListener('click',()=>{wantsMonth=el.dataset.wm;render()}));
   app.querySelectorAll('input.num').forEach(el=>el.addEventListener('change',onNum));
@@ -824,7 +894,7 @@ function wire(){
   const lf=document.getElementById('logform');if(lf)lf.addEventListener('submit',e=>{e.preventDefault();const amt=num(document.getElementById('log-amt').value);if(!amt){document.getElementById('log-amt').focus();return}
     const cid=document.getElementById('log-cat').value,note=document.getElementById('log-note').value.trim();const d=monthDoc(curMonth);const it=d.items[cid]||(d.items[cid]={budget:0,actual:0});
     it.actual=Math.round(((it.actual||0)+amt)*100)/100;const cname=cats().find(c=>c.id===cid)?.name||cid;
-    d.notes=(d.notes?d.notes.replace(/\s+$/,'')+'\n':'')+`${amt.toLocaleString('en-PH')} ${note||cname}`;saveMonth(curMonth);render();const cw=monthCalc(curMonth).wants;if(capOf(curMonth)&&cw>capOf(curMonth)&&cats().find(c=>c.id===cid)?.group==='wants')setStatus(`Added. Wants are now ${fmt0(cw-capOf(curMonth))} over your cap`,true);else setStatus(`Added ${fmt(amt)} to ${cname}`)});
+    d.notes=(d.notes?d.notes.replace(/\s+$/,'')+'\n':'')+`${amt.toLocaleString('en-PH')} ${note||cname}`;saveMonth(curMonth);render();const cw=monthCalc(curMonth).wants;const cc=cats().find(c=>c.id===cid);if(capOf(curMonth)&&cw>capOf(curMonth)&&cc?.group==='wants')setStatus(`Added. Wants are now ${fmt0(cw-capOf(curMonth))} over your cap`,true);else if(cc&&isShopping(cc)&&shopOf(curMonth)&&shopSpent(curMonth)>shopOf(curMonth))setStatus(`Added. Shopping is now ${fmt0(shopSpent(curMonth)-shopOf(curMonth))} over its ${fmt0(shopOf(curMonth))} limit`,true);else setStatus(`Added ${fmt(amt)} to ${cname}`)});
   app.querySelectorAll('[data-act]').forEach(b=>b.addEventListener('click',()=>{const a=b.dataset.act,i=KEYS.indexOf(curMonth);
     if(a==='prev'&&i>0)curMonth=KEYS[i-1];if(a==='next'&&i<KEYS.length-1)curMonth=KEYS[i+1];if(a==='togglecats')showAllCats=!showAllCats;
     if(a==='copybudget'){let j=i-1;while(j>=0&&!Object.values(months[KEYS[j]]?.items||{}).some(x=>x.budget))j--;
@@ -844,7 +914,7 @@ function onNum(e){const el=e.target;let v;try{v=calc(el.value)}catch(_){el.value
   if(f==='sav'){const s=d.savings[c]||(d.savings[c]={});if(el.value.trim()==='')delete s[k];else s[k]=v;if(!Object.keys(s).length)delete d.savings[c]}
   saveMonth(curMonth);render();
 }
-function route(){const h=location.hash.slice(1);view=['overview','month','goals','plan','lending'].includes(h)?h:'overview';render()}
+function route(){const h=location.hash.slice(1);view=['overview','month','goals','plan','lending','bigplans'].includes(h)?h:'overview';render()}
 // "=" or Enter in an amount box works the sum out; a running total shows while typing
 app.addEventListener('keydown',e=>{const el=e.target;if(!el.matches||!el.matches('input[data-calc]'))return;
   if(e.key==='='||(e.key==='Enter'&&el.classList.contains('num'))){e.preventDefault();let v;try{v=calc(el.value)}catch(_){setStatus("That amount didn't add up. Use numbers with + − × ÷.",true);return}
@@ -919,7 +989,7 @@ function exportData(){const out={months,loans,settings:{main:settings}};const bl
     let gotM=false,gotS=false,gotL=false,sExists=false;
     const ready=()=>{if(!(gotM&&gotS&&gotL)||loaded){if(loaded)render();return}
       if(!sExists&&!Object.keys(months).length){importView();return}
-      loaded=true;if(!KEYS.some(hasData))curMonth=KEYS.includes(NOWKEY)?NOWKEY:KEYS[0];render()};
+      loaded=true;migrateSettings();if(!KEYS.some(hasData))curMonth=KEYS.includes(NOWKEY)?NOWKEY:KEYS[0];render()};
     unsub.push(db.collection('months').onSnapshot(snap=>{const next={};for(const doc of snap.docs){if(saving['months/'+doc.id])next[doc.id]=months[doc.id];else next[doc.id]=clone(doc.data())}
       for(const p in saving)if(p.startsWith('months/')){const id=p.slice(7);next[id]=months[id]}months=next;gotM=true;ready()},
       e=>{setStatus('Live updates stopped. Reload to reconnect.',true)}));
