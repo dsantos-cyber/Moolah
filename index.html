@@ -918,6 +918,9 @@ function migrateSettings3(){
   if(!canWrite||(settings.mig||0)>=3||(settings.mig||0)<2)return;
   const d=months['2026-06'];if(d&&d.notes){const n=d.notes.replace(/Debt AE\s*-?\s*18,?000\s*;?\s*/i,'').replace(/^Other:\s*$/m,'').replace(/\n{2,}/g,'\n').trim();if(n!==d.notes){d.notes=n;saveMonth('2026-06')}}
   settings.mig=3;saveSettings()}
+// gifts count under the Wants line of the salary plan (asked for on 28 Oct 2026)
+function linkGifts(){const P=settings.plan;if(!canWrite||!P||!P.lines)return;const ln=P.lines.find(l=>l.id==='wants');
+  if(!ln||P.lines.some(l=>(l.cats||[]).includes('gifts')))return;ln.cats=(ln.cats||[]).concat(['gifts']);saveSettings()}
 function migrateSettings4(){
   if(!canWrite||(settings.mig||0)!==3)return;const P=settings.plan;
   if(P&&P.rules)P.rules=P.rules.map(r=>r.replace(/Big Plans Fund/g,'Sinking Funds'));settings.mig=4;saveSettings()}
@@ -1095,7 +1098,7 @@ async function exportData(){const out={months,loans,settings:{main:settings}};co
     let gotM=false,gotS=false,gotL=false,sExists=false;
     const ready=()=>{if(!(gotM&&gotS&&gotL)||loaded){if(loaded)render();return}
       if(!sExists&&!Object.keys(months).length){importView();return}
-      loaded=true;migrateSettings();migrateSettings2();migrateSettings3();migrateSettings4();if(!KEYS.some(hasData))curMonth=KEYS.includes(NOWKEY)?NOWKEY:KEYS[0];render()};
+      loaded=true;migrateSettings();migrateSettings2();migrateSettings3();migrateSettings4();linkGifts();if(!KEYS.some(hasData))curMonth=KEYS.includes(NOWKEY)?NOWKEY:KEYS[0];render()};
     unsub.push(db.collection('months').onSnapshot(snap=>{const next={};for(const doc of snap.docs){if(saving['months/'+doc.id])next[doc.id]=months[doc.id];else next[doc.id]=clone(doc.data())}
       for(const p in saving)if(p.startsWith('months/')){const id=p.slice(7);next[id]=months[id]}months=next;gotM=true;ready()},
       e=>{setStatus('Live updates stopped. Reload to reconnect.',true)}));
