@@ -28,7 +28,7 @@ footer.foot{display:flex;flex-wrap:wrap;gap:6px 14px;justify-content:center;font
   --bg:#fcf6f8; --surface:#ffffff; --sunk:#f7eaf0; --ink:#3a2533; --muted:#7a6070; --line:#efdce5;
   --accent:#c94b85; --accent-ink:#ffffff; --accent-soft:#fbe3ee; --focus:#e8954a;
   --over:#c94f4c; --over-soft:#fbe4e3; --ok:#2f8a5f; --on-series:#3a2533;
-  --s1:#8fb8f0; --s2:#f6a98b; --s3:#8fd6b8; --s4:#f2c76a; --s5:#f3a6c8; --s6:#9ed38f; --s7:#b9a6ee;
+  --s1:#8fb8f0; --s2:#f6a98b; --s3:#8fd6b8; --s4:#f2c76a; --s5:#f3a6c8; --s6:#9ed38f; --s7:#b9a6ee; --s8:#7fd3dd;
   --t1:#fdeef4; --t2:#f1edfc; --t3:#e9f7f0; --t4:#fef0e8; --t5:#e9f1fd; --t6:#fdf6e3;
   --display:"Bricolage Grotesque", "Avenir Next", "Segoe UI", system-ui, sans-serif;
   --body:"Instrument Sans", "Segoe UI", system-ui, -apple-system, sans-serif;
@@ -37,7 +37,7 @@ footer.foot{display:flex;flex-wrap:wrap;gap:6px 14px;justify-content:center;font
   --bg:#1c1a26; --surface:#24212f; --sunk:#2c2839; --ink:#ece9f5; --muted:#aaa4c2; --line:#383348;
   --accent:#b9abf2; --accent-ink:#1c1a26; --accent-soft:#352f4d; --focus:#f5c58a;
   --over:#f29b97; --over-soft:#45282c; --ok:#93d9ae; --on-series:#1c1a26;
-  --s1:#7ea6e0; --s2:#e89a7c; --s3:#7cc7a8; --s4:#e3be6a; --s5:#e394b7; --s6:#8cc27e; --s7:#a796e0;
+  --s1:#7ea6e0; --s2:#e89a7c; --s3:#7cc7a8; --s4:#e3be6a; --s5:#e394b7; --s6:#8cc27e; --s7:#a796e0; --s8:#62bcc8;
   --t1:var(--surface); --t2:var(--surface); --t3:var(--surface); --t4:var(--surface); --t5:var(--surface); --t6:var(--surface); color-scheme:dark}
 *{box-sizing:border-box}
 body{background:var(--bg);color:var(--ink);font:15px/1.5 var(--body);font-variant-numeric:tabular-nums}
@@ -152,6 +152,9 @@ form.log input,form.log select{width:100%;min-width:0}
 .stk-top{display:flex;gap:12px;align-items:center}
 .stk-ic{width:44px;height:44px;flex:0 0 44px;border-radius:14px;display:grid;place-items:center;font-size:24px;background:var(--accent-soft)}
 .stk-name{font-weight:600;line-height:1.25}
+.stk-where{font-size:12px;margin-top:2px;color:var(--muted)}.stk-w-hh{color:var(--ok);font-weight:600}.stk-w-cat{color:var(--accent);font-weight:600}
+.flow-key{display:grid;gap:6px;margin-top:10px;font-size:13px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 12px}.flow-key b{margin-right:4px}
+.rs-note{font-size:12px;color:var(--muted)}.hh-box{border:1px dashed var(--line);border-radius:12px;padding:10px 12px;margin-top:10px}
 .stk-bar{height:10px;border-radius:999px;background:var(--sunk);overflow:hidden}.stk-bar i{display:block;height:100%;border-radius:999px}
 .stk-tag{display:inline-block;font-size:11px;font-weight:700;padding:2px 9px;border-radius:999px;white-space:nowrap}
 .stk-ok{background:#e3f4e8;color:#2f7a4d}.stk-soon{background:#fdf0d3;color:#9a6a12}.stk-now{background:var(--over-soft);color:var(--over)}.stk-unk{background:var(--sunk);color:var(--muted)}
@@ -213,7 +216,7 @@ form.payform button{grid-column:1/-1}
 <header><div class="wrap">
   <p class="brand">MOOLAAAAAAH!!<small>Personal expense tracker · Philippine peso (₱)</small></p>
   <nav aria-label="Views">
-    <a href="#overview" data-v="overview"><span class="hide-sm">Overview</span><span class="show-sm">Home</span></a>
+    <a href="#overview" data-v="overview"><span class="hide-sm">Dashboard</span><span class="show-sm">Home</span></a>
     <a href="#month" data-v="month">Month</a>
     <a href="#goals" data-v="goals"><span class="hide-sm">Savings goals</span><span class="show-sm">Goals</span></a>
     <a href="#plan" data-v="plan"><span class="hide-sm">Savings plan</span><span class="show-sm">Plan</span></a>
@@ -237,9 +240,10 @@ const GROUPS=[
   {id:'family',name:'Needs — Family Contribution',short:'Family',kind:'needs',c:'--s2'},
   {id:'insurance',name:'Needs — Insurance',short:'Insurance',kind:'needs',c:'--s3'},
   {id:'work',name:'Needs — Work Essentials',short:'Work',kind:'needs',c:'--s4'},
+  {id:'household',name:'Needs — Household Contribution',short:'Household',kind:'needs',c:'--s8'},
   {id:'wants',name:'Wants',short:'Wants',kind:'wants',c:'--s5'},
   {id:'lending',name:'Lending',short:'Lending',kind:'lending',c:'--s7'}];
-const BASE_CATS=[["rent","Rent","solo"],["gym-membership","Gym Membership","solo"],["gym-supplement","Gym Supplement","solo"],["education-upskilling","Education / Upskilling","solo"],["transportation","Transportation","solo"],["mobile-load","Mobile Load","solo"],["hygiene-supplies","Hygiene Supplies","solo"],["hair-care","Hair Care","solo"],["skincare","Skincare","solo"],["health-insurance-papa","Health Insurance (Papa)","family"],["luffy-s-pet-insurance","Luffy's Pet Insurance","family"],["electricity-bill","Electricity Bill","family"],["fwd-life-insurance-annual","FWD Life Insurance (annual)","insurance"],["hmo","HMO","insurance"],["st-peter-funeral-plan","St. Peter Funeral Plan","insurance"],["back-up-devices","Back-Up Devices","work"],["internet-back-up","Internet Back-Up","work"],["ups","UPS","work"],["eyewear-eyecare","Eyewear / Eyecare","work"],["clinic-duty","Clinic Duty","work"],["ergonomic-items","Ergonomic Items","work"],["travel-fund","Travel Fund","wants"],["rest-and-recreation","Rest and Recreation","wants"],["social-gathering","Social Gathering","wants"],["dine-out-food-delivery","Dine Out / Food Delivery","wants"],["gifts","Gifts","wants"],["play-fund","Play Fund","wants"],["shopping-clothes","Shopping – Clothes","wants"],["shopping-shoes","Shopping – Shoes","wants"],["shopping-electronics-gadgets","Shopping – Electronics & Gadgets","wants"],["shopping-makeup","Shopping – Makeup","wants"],["shopping-home-essentials","Shopping – Home Essentials","wants"],["shopping-gym-essentials","Shopping – Gym Essentials","wants"],["e-games","E-Games","wants"],["others","Others","wants"],["money-lent","Money lent out","lending"]].map(([id,name,group])=>({id,name,group}));
+const BASE_CATS=[["rent","Rent","solo"],["gym-membership","Gym Membership","solo"],["gym-supplement","Gym Supplement","solo"],["education-upskilling","Education / Upskilling","solo"],["transportation","Transportation","solo"],["mobile-load","Mobile Load","solo"],["hygiene-supplies","Hygiene & Toiletries","solo"],["hair-care","Hair Care","solo"],["skincare","Skincare","solo"],["health-insurance-papa","Health Insurance (Papa)","family"],["luffy-s-pet-insurance","Luffy's Pet Insurance","family"],["electricity-bill","Electricity Bill","family"],["fwd-life-insurance-annual","FWD Life Insurance (annual)","insurance"],["hmo","HMO","insurance"],["st-peter-funeral-plan","St. Peter Funeral Plan","insurance"],["back-up-devices","Back-Up Devices","work"],["internet-back-up","Internet Back-Up","work"],["ups","UPS","work"],["eyewear-eyecare","Eyewear / Eyecare","work"],["clinic-duty","Clinic Duty","work"],["ergonomic-items","Ergonomic Items","work"],["travel-fund","Travel Fund","wants"],["rest-and-recreation","Rest and Recreation","wants"],["social-gathering","Social Gathering","wants"],["dine-out-food-delivery","Dine Out / Food Delivery","wants"],["gifts","Gifts","wants"],["play-fund","Play Fund","wants"],["shopping-clothes","Shopping – Clothes","wants"],["shopping-shoes","Shopping – Shoes","wants"],["shopping-electronics-gadgets","Shopping – Electronics & Gadgets","wants"],["shopping-makeup","Shopping – Makeup","wants"],["shopping-home-essentials","Shopping – Home Essentials","wants"],["shopping-gym-essentials","Shopping – Gym Essentials","wants"],["e-games","E-Games","wants"],["others","Others","wants"],["money-lent","Money lent out","lending"]].map(([id,name,group])=>({id,name,group}));
 const ACCOUNTS=[
   {id:'ef',name:'Emergency Fund',bank:'Maribank',rate:'3.75% p.a. time deposit'},
   {id:'house',name:'Dream House',bank:'Maya',rate:'3% p.a. savings'},
@@ -292,7 +296,8 @@ function monthCalc(k){
   const d=months[k]||{};let incE=0,incA=0;
   for(const s of SRC_KEYS){const r=d.income?.[s];if(r){incE+=r.expected||0;incA+=r.actual||0}}
   const g={};for(const G of GROUPS)g[G.id]={b:0,a:0};
-  for(const c of cats()){const it=d.items?.[c.id];if(it&&g[c.group]){g[c.group].b+=it.budget||0;g[c.group].a+=it.actual||0}}
+  for(const c of cats()){const it=d.items?.[c.id];if(g[c.group]){g[c.group].b+=it?.budget||0;g[c.group].a+=catAct(k,c.id)}}
+  g.household.b=d.householdExp||0;g.household.a=d.household||0;
   for(const x of lentIn(k))g.lending.a+=x.amount;
   const needs=GROUPS.filter(G=>G.kind==='needs').reduce((s,G)=>s+g[G.id].a,0);
   return {incE,incA,g,needs,wants:g.wants.a,lending:g.lending.a};
@@ -336,7 +341,7 @@ function saveSettings(){persist('settings/main',()=>settings)}
 
 // ---------- views ----------
 const app=document.getElementById('app');
-function render(){
+function render(){rsCache=null;
   const a=document.activeElement;const keep=a&&a.id&&app.contains(a)?{id:a.id,val:a.value,s:a.selectionStart,e:a.selectionEnd,dirty:a.dataset.orig!==undefined&&a.value!==a.dataset.orig}:null;
   document.querySelectorAll('nav a').forEach(x=>{if(x.dataset.v===view)x.setAttribute('aria-current','page');else x.removeAttribute('aria-current')});
   if(!loaded){return}
@@ -388,13 +393,13 @@ function viewOverview(){
   const anyData=ks.some(hasData);
   if(!anyData)return `<div class="panel empty"><h2>Nothing tracked yet</h2><p>Open the <a href="#month">Month</a> view and type in your income and spending. Totals and charts appear here as soon as you do.</p></div>`;
   // category totals
-  const catT=cats().map(c=>{let b=0,a=0;for(const k of ks){const it=months[k]?.items?.[c.id];if(it){b+=it.budget||0;a+=it.actual||0}}return {...c,b,a}}).filter(c=>c.a||c.b).sort((x,y)=>y.a-x.a);
+  const catT=cats().map(c=>{let b=0,a=0;for(const k of ks){const it=months[k]?.items?.[c.id];b+=it?.budget||0;a+=catAct(k,c.id)}return {...c,b,a}}).filter(c=>c.a||c.b).sort((x,y)=>y.a-x.a);
   const shown=showAllCats?catT:catT.slice(0,10);
   const allocParts=GROUPS.map(G=>({n:G.short,v:gT[G.id],c:G.c})).concat([{n:'Savings',v:Math.max(dep,0),c:'--s6'}]);
   const allocTot=allocParts.reduce((s,p)=>s+p.v,0)||1;
   return `
   <section>
-    <div><span class="eyebrow">${label(ks[0])} – ${label(lastK)}</span><h2>Where the money went</h2></div>
+    <div><span class="eyebrow">${label(ks[0])} – ${label(lastK)}</span><h2>Dashboard · where the money went</h2></div>
     <div class="kpis">
       ${kpi('Income',fmt0(inc),`${ks.filter(k=>monthCalc(k).incA).length} months with income`)}
       ${kpi('Spent',fmt0(needs+wants+lend),`${fmt0(needs)} needs · ${fmt0(wants)} wants`+(lend?` · ${fmt0(lend)} lent out`:''))}
@@ -406,6 +411,7 @@ function viewOverview(){
     </div>
   </section>
   ${balanceCheck(inc,needs+wants+lend,dep,int)}
+  ${hhDash(ks)}
   <section class="panel">
     <div class="row" style="justify-content:space-between"><h3>Spending each month vs. income</h3>
       <div class="legend">${GROUPS.map(G=>`<span><i class="sw" style="background:var(${G.c})"></i>${G.short}</span>`).join('')}<span><i class="sw" style="background:var(--ink);height:3px"></i>Income</span></div></div>
@@ -458,7 +464,7 @@ function monthChart(rows){
 }
 function roundTop(x,y,w,h,r){r=Math.min(r,h,w/2);return `M${x},${y+h}V${y+r}Q${x},${y} ${x+r},${y}H${x+w-r}Q${x+w},${y} ${x+w},${y+r}V${y+h}Z`}
 function showTip(i,ev){const r=chartRows[i];const tip=document.getElementById('tip');if(!r||!tip)return;
-  const out=r.c.needs+r.c.wants;
+  const out=r.c.needs+r.c.wants+r.c.lending;
   tip.innerHTML=`<b>${label(r.k)}</b>${GROUPS.map(G=>`<div class="r"><span><i class="sw" style="background:var(${G.c})"></i>${G.short}</span><span>${fmt0(r.c.g[G.id].a)}</span></div>`).join('')}
   <div class="r" style="border-top:1px solid var(--line);margin-top:4px;padding-top:4px"><span>Spent</span><span>${fmt0(out)}</span></div><div class="r"><span>Income</span><span>${fmt0(r.c.incA)}</span></div>`;
   tip.hidden=false;const box=document.getElementById('mchart').getBoundingClientRect();
@@ -471,12 +477,12 @@ function viewMonth(){
   const k=curMonth,d=months[k]||{},c=monthCalc(k),S=savingsSeries()[k],i=KEYS.indexOf(k),PJ=projection(),tgt=PJ&&PJ.byKey[k];
   const coll=collectedIn(k).reduce((s,x)=>s+x.amount,0),outflow=c.needs+c.wants+c.lending+S.dep, left=c.incA+coll-outflow;
   const mix=[['Needs',c.needs,.5,'--s1'],['Wants',c.wants,.3,'--s5'],['Savings',S.dep,.2,'--s6']];
-  const groupTable=G=>{const list=cats().filter(x=>x.group===G.id);const t=c.g[G.id];
+  const groupTable=G=>{if(G.id==='household')return hhPanel(k);const list=cats().filter(x=>x.group===G.id);const t=c.g[G.id];
     return `<section class="panel"><div class="row" style="justify-content:space-between"><h3><span class="sw" style="background:var(${G.c});margin-right:8px"></span>${G.name}</h3><span class="muted">${fmt(t.a)} of ${fmt(t.b)}${G.id==='wants'&&capOf(k)?` · cap ${fmt0(capOf(k))}${capInfo(k).carry?` (incl. ${fmt0(capInfo(k).carry)} carried over)`:''}`:''}</span></div>
     ${G.id==='wants'&&capOf(k)?capBar(t.a,k)+shopBar(k):''}
     <div class="scroll"><table><thead><tr><th>Category</th><th>Budget</th><th>Actual</th><th>Remaining</th></tr></thead><tbody>
-    ${list.map(x=>{const it=d.items?.[x.id]||{};const rem=(it.budget||0)-(it.actual||0);
-      return `<tr><td class="name">${esc(x.name)}</td><td>${numInput('b-'+x.id,it.budget,`data-f="item" data-c="${x.id}" data-k="budget" aria-label="${esc(x.name)} budget"`)}</td><td>${numInput('a-'+x.id,it.actual,`data-f="item" data-c="${x.id}" data-k="actual" aria-label="${esc(x.name)} actual"`)}</td><td class="${rem<0?'neg':''}">${fmt(rem)}${rem<0?'<span class="chip">over</span>':''}</td></tr>`}).join('')}
+    ${list.map(x=>{const it=d.items?.[x.id]||{},rs=rsIn(k,x.id);const rem=(it.budget||0)-catAct(k,x.id);
+      return `<tr><td class="name">${esc(x.name)}${rs.total?`<br><a href="#stock" class="rs-note">+ ${fmt(rs.total)} from Restock: ${rs.list.map(p=>esc(p.name)).join(', ')}</a>`:''}</td><td>${numInput('b-'+x.id,it.budget,`data-f="item" data-c="${x.id}" data-k="budget" aria-label="${esc(x.name)} budget"`)}</td><td>${numInput('a-'+x.id,it.actual,`data-f="item" data-c="${x.id}" data-k="actual" aria-label="${esc(x.name)} actual"`)}</td><td class="${rem<0?'neg':''}">${fmt(rem)}${rem<0?'<span class="chip">over</span>':''}</td></tr>`}).join('')}
     ${G.id==='lending'?Object.entries(loans||{}).filter(([,L])=>L.type==='ledger'&&L.byMonth).map(([id,L])=>`<tr><td class="name">${esc(L.borrower)} · running tab<br><a class="muted" style="font-size:12px" href="#lending">Lent this month, net</a></td><td></td><td>${numInput('lm-'+id,ledgerMonth(L,k)||'',`data-f="lendmonth" data-c="${id}" aria-label="${esc(L.borrower)} lent in ${label(k)}"`)}</td><td></td></tr>`).join(''):''}
     ${G.id==='lending'?lentIn(k).filter(x=>!x.ledger).map(x=>`<tr><td class="name">${esc(x.name)}<br><a class="muted" style="font-size:12px" href="#lending">From the Lending tab</a></td><td></td><td>${fmt(x.amount)}</td><td></td></tr>`).join(''):''}
     </tbody><tfoot><tr><td>Subtotal</td><td>${fmt(t.b)}</td><td>${fmt(t.a)}</td>${G.id==='lending'?'<td></td>':`<td class="${t.b-t.a<0?'neg':''}">${fmt(t.b-t.a)}</td>`}</tr></tfoot></table></div>
@@ -501,11 +507,12 @@ function viewMonth(){
     <div class="scroll"><table><thead><tr><th>Who · due</th><th>Amount</th><th>Status</th></tr></thead><tbody>${due.map(([L,j])=>instRow(L,j,true)).join('')}</tbody></table></div></section>`})()}
   ${canWrite?`<section class="panel"><h3>Log a purchase</h3>
   <form class="log" id="logform">
-    <label>Category<select id="log-cat">${GROUPS.map(G=>`<optgroup label="${esc(G.short)}">${cats().filter(x=>x.group===G.id).map(x=>`<option value="${x.id}">${esc(x.name)}</option>`).join('')}</optgroup>`).join('')}</select></label>
+    <label>Category<select id="log-cat">${GROUPS.filter(G=>G.id!=='household').map(G=>`<optgroup label="${esc(G.short)}">${cats().filter(x=>x.group===G.id).map(x=>`<option value="${x.id}">${esc(x.name)}</option>`).join('')}</optgroup>`).join('')}</select></label>
     <label>Amount (₱)<input class="txt" id="log-amt" inputmode="text" enterkeyhint="done" data-calc placeholder="0.00" required></label>
     <label>Note (optional)<input class="txt" id="log-note" placeholder="e.g. Grab to the clinic"></label>
+    ${Object.keys(stock||{}).length?`<label>Restock item (optional)<select id="log-stk"><option value="">Not a restock item</option>${stkList().sort((a,b)=>a.it.name.localeCompare(b.it.name)).map(x=>`<option value="${x.id}">${x.it.icon||''} ${esc(x.it.name)} → ${esc(stkWhere(x.it).short)}</option>`).join('')}</select></label>`:''}
     <button class="primary" type="submit">Add to ${MN[+k.slice(5)-1]}</button>
-  </form><p class="hint">Adds the amount to that category's Actual for ${label(k)} and writes a line in your notes.</p></section>`:''}
+  </form><p class="hint">Adds the amount to that category's Actual for ${label(k)} and writes a line in your notes. Pick a restock item and it's saved as a purchase in Recurring purchases too, counted in that item's category (household items go to Household contribution).</p></section>`:''}
   <div class="grid2">
     <section class="panel"><h3>Income</h3>
       <div class="scroll"><table><thead><tr><th>Source</th><th>Expected</th><th>Actual</th><th>Difference</th></tr></thead><tbody>
@@ -514,7 +521,6 @@ function viewMonth(){
     </section>
     <section class="panel"><h3>Spending mix</h3><p class="hint" style="margin:0">Share of this month's income. Marks show the 50 / 30 / 20 guide.</p>
       <div class="mix">${mix.map(([n,v,g,col])=>{const p=c.incA?v/c.incA:0;return `<div class="mixrow"><span>${n}</span><span class="track"><i style="width:${Math.min(Math.max(p,0),1)*100}%;background:var(${col})"></i><u style="left:${g*100}%"></u></span><span style="text-align:right" class="${p>g&&n!=='Savings'?'neg':''}">${c.incA?pct(p):'—'}</span></div>`}).join('')}</div>
-      <div class="row" style="justify-content:space-between;gap:10px;border-top:1px solid var(--line);padding-top:10px;margin-top:10px"><span><b>Household contribution</b><br><span class="hint">${label(k)}</span></span>${numInput('hh',d.household,'data-f="month" data-c="household" aria-label="Household contribution"')}</div>
     </section>
   </div>
   ${GROUPS.map(groupTable).join('')}
@@ -953,7 +959,43 @@ function migrateSettings4(){
 // ---------- recurring purchases: when each item was bought, how long it lasts, when to buy again ----------
 const STK_CATS=[['personal','Personal care','💆‍♀️'],['toiletries','Toiletries','🧻'],['supplements','Supplements','💪'],['household','Household & pantry','🏠'],['other','Other','✨']];
 const STK_ICONS=['🧴','🧼','🫧','🪥','🧻','🌸','💆‍♀️','💇‍♀️','🧽','🧺','🍽️','🍚','☕','🥛','🍳','🫙','🥫','🧂','💪','💊','🐾','🏠','✨'];
-let stkEdit=null,stkBuy=null,stkDel=null;
+let stkEdit=null,stkBuy=null,stkDel=null,rsCache=null;
+// Restock purchases from this month on count in Month automatically (earlier ones were already typed in by hand)
+const STK_SYNC_FROM='2026-11';
+// which Month category an item's purchases count in; '@household' = paid from the household contribution
+function stkMonthCat(it){if(it.monthCat!=null)return it.monthCat;
+  return it.cat==='toiletries'?'hygiene-supplies':it.cat==='supplements'?'gym-supplement':it.cat==='household'?'@household':it.cat==='personal'?(/skin|lotion|derm|serum|toner|sunscreen|cleanser|moistur|face/i.test(it.name)?'skincare':'hair-care'):''}
+function stkWhere(it){const m=stkMonthCat(it);if(m==='@household')return {name:'Household contribution',short:'Household',kind:'hh'};
+  const c=m&&cats().find(x=>x.id===m);if(!c)return {name:'Not counted in Month',short:'not counted',kind:'none'};const G=GROUPS.find(g=>g.id===c.group);return {name:`${c.name} (${G?G.kind==='needs'?'Needs':G.short:''})`,short:c.name,kind:'cat'}}
+function rsAll(){if(rsCache)return rsCache;const m={};
+  for(const [id,it] of Object.entries(stock||{})){const mc=stkMonthCat(it);if(!mc)continue;
+    for(const p of it.purchases||[]){if(!p.date)continue;const k=p.date.slice(0,7);if(k<STK_SYNC_FROM)continue;const key=k+'|'+mc,v=p.price||0;
+      const r=m[key]||(m[key]={total:0,list:[]});r.total+=v;r.list.push({id,name:it.name,icon:it.icon,date:p.date,amount:v})}}
+  return rsCache=m}
+const rsIn=(k,cid)=>rsAll()[k+'|'+cid]||{total:0,list:[]};
+const catAct=(k,cid)=>(months[k]?.items?.[cid]?.actual||0)+rsIn(k,cid).total;
+function stkRecordBuy(id,date,price){const it=stock[id],x=stkInfo(it);
+  // buying again marks when the previous one ran out, unless that was already recorded
+  if(x.last&&!x.last.until&&date>x.last.date){x.last.until=date;it.lastsDays=Math.round((dms(date)-dms(x.last.date))/DAYMS);it.estimated=false}
+  it.purchases=x.ps.concat([{date,price:price||undefined}]).map(p=>JSON.parse(JSON.stringify(p)));if(price)it.price=price;saveStock(id)}
+// ---------- household contribution: your share for the house; Household & pantry restocks are paid from it ----------
+function hhMonth(k){const d=months[k]||{},rs=rsIn(k,'@household');return {exp:d.householdExp||0,act:d.household||0,charged:rs.total,list:rs.list,left:(d.household||0)-rs.total}}
+function hhPanel(k){const h=hhMonth(k),df=h.act-h.exp;
+  return `<section class="panel"><div class="row" style="justify-content:space-between"><h3><span class="sw" style="background:var(--s8);margin-right:8px"></span>Needs — Household Contribution</h3><span class="muted">${fmt(h.act)} of ${fmt(h.exp)} expected</span></div>
+    <div class="scroll"><table><thead><tr><th></th><th>Expected</th><th>Actual</th><th>Difference</th></tr></thead><tbody>
+    <tr><td class="name">Your contribution<br><span class="muted" style="font-size:12px">counts in Needs</span></td><td>${numInput('hhe',h.exp,'data-f="month" data-c="householdExp" aria-label="Expected household contribution"')}</td><td>${numInput('hh',h.act,'data-f="month" data-c="household" aria-label="Actual household contribution"')}</td><td class="${df<0?'neg':''}">${h.exp||h.act?fmt(df):''}</td></tr>
+    </tbody></table></div>
+    <div class="hh-box"><div class="row" style="justify-content:space-between"><b>🏠 Paid from it: Household & pantry restocks</b><span>${fmt(h.charged)}</span></div>
+    ${h.list.length?`<div class="scroll"><table><tbody>${h.list.sort((a,b)=>a.date.localeCompare(b.date)).map(p=>`<tr><td class="name">${p.icon||''} ${esc(p.name)}</td><td class="muted">${dayLabel(p.date)}</td><td>${fmt(p.amount)}</td></tr>`).join('')}</tbody></table></div>`:`<p class="hint" style="margin:4px 0 0">${k<STK_SYNC_FROM?`Restocks are tracked here from ${label(STK_SYNC_FROM)}.`:'No household restocks bought this month yet. Tap 🛒 Bought in Recurring purchases.'}</p>`}
+    <div class="row" style="justify-content:space-between;border-top:1px solid var(--line);padding-top:8px;margin-top:6px"><b>Left in the household contribution</b><b class="${h.left<0?'neg':'pos'}">${fmt(h.left)}</b></div></div>
+    <p class="hint">Only your contribution counts as your spending. Household & pantry restocks come out of it, so they don't count a second time.${h.left<0?' Restocks went over the contribution this month.':''}</p></section>`}
+function hhDash(ks){const rows=ks.map(k=>({k,...hhMonth(k)})).filter(r=>r.exp||r.act||r.charged);if(!rows.length)return '';
+  const T=rows.reduce((s,r)=>({exp:s.exp+r.exp,act:s.act+r.act,charged:s.charged+r.charged,left:s.left+r.left}),{exp:0,act:0,charged:0,left:0});
+  return `<section class="panel"><div class="row" style="justify-content:space-between"><h3><span class="sw" style="background:var(--s8);margin-right:8px"></span>Household contribution</h3><span class="muted">${fmt0(T.act)} of ${fmt0(T.exp)} expected</span></div>
+    <div class="kpis mini">${kpi('Expected',fmt0(T.exp),'what you planned to give')}${kpi('Contributed',fmt0(T.act),'counts in your Needs',T.act<T.exp?'neg':'')}${kpi('Restocks paid from it',fmt0(T.charged),'Household & pantry, not your spending')}${kpi('Left in it',fmt0(T.left),'contribution − restocks',T.left<0?'neg':'pos')}</div>
+    <div class="scroll"><table><thead><tr><th>Month</th><th>Expected</th><th>Actual</th><th>Difference</th><th>Restocks</th><th>Left</th></tr></thead><tbody>
+    ${rows.map(r=>`<tr class="link" data-goto="${r.k}" tabindex="0"><td>${label(r.k)}</td><td>${fmt(r.exp)}</td><td>${fmt(r.act)}</td><td class="${r.act-r.exp<0?'neg':''}">${fmt(r.act-r.exp)}</td><td>${fmt(r.charged)}</td><td class="${r.left<0?'neg':''}">${fmt(r.left)}</td></tr>`).join('')}
+    </tbody></table></div><p class="hint">Restocks are charged here from ${label(STK_SYNC_FROM)}. Type the expected and actual amounts in Month › Household Contribution.</p></section>`}
 const DAYMS=86400000,dms=d=>Date.UTC(+d.slice(0,4),+d.slice(5,7)-1,+d.slice(8,10)),addDays=(d,n)=>new Date(dms(d)+n*DAYMS).toISOString().slice(0,10);
 function stkInfo(it){const ps=(it.purchases||[]).filter(x=>x.date).slice().sort((a,b)=>a.date.localeCompare(b.date)),last=ps[ps.length-1];
   const price=last?.price??it.price??0;let lasts=it.lastsDays||0;
@@ -975,6 +1017,7 @@ function viewStock(){
       <label>Name<input class="txt" name="name" value="${esc(it.name)}" required></label>
       <label>Icon<select name="icon">${STK_ICONS.map(i=>`<option ${i===it.icon?'selected':''}>${i}</option>`).join('')}</select></label>
       <label>Section<select name="cat">${STK_CATS.map(([id,n])=>`<option value="${id}" ${id===it.cat?'selected':''}>${n}</option>`).join('')}</select></label>
+      <label>Counts in<select name="mcat">${[['','Not counted in Month'],['@household','Household contribution (paid from it)']].concat(cats().filter(c=>c.group!=='lending').map(c=>[c.id,c.name+' · '+(GROUPS.find(g=>g.id===c.group)?.short||'')])).map(([v,n])=>`<option value="${v}" ${v===stkMonthCat(it)?'selected':''}>${esc(n)}</option>`).join('')}</select></label>
       <label>Usual price ₱<input class="txt" name="price" data-calc inputmode="text" value="${editVal(it.price)}"></label>
       <label>Lasts (days)<input class="txt" name="days" inputmode="numeric" value="${it.lastsDays||''}"></label>
       <label>Note<input class="txt" name="note" value="${esc(it.note||'')}"></label>
@@ -982,7 +1025,7 @@ function viewStock(){
       ${x.ps.length?`<div class="scroll"><table><thead><tr><th>Bought</th><th>Price</th><th>Lasted until</th><th></th></tr></thead><tbody>${x.ps.map((p,i)=>`<tr><td>${dayLabel(p.date)}</td><td>${p.price?fmt(p.price):'—'}</td><td>${p.until?dayLabel(p.until):'—'}</td><td><button type="button" class="link" data-stkpdel="${x.id}" data-date="${p.date}">Remove</button></td></tr>`).join('')}</tbody></table></div>`:''}
       ${stkDel===x.id?`<div class="row" style="gap:8px"><span class="neg">Delete ${esc(it.name)}?</span><button type="button" data-stkdelyes="${x.id}">Delete</button><button type="button" class="link" data-stkcancel>Keep</button></div>`:`<button type="button" class="link" data-stkdel="${x.id}" style="justify-self:start">Delete item</button>`}</section>`;
     return `<section class="panel stk-card">
-    <div class="stk-top"><span class="stk-ic" aria-hidden="true">${it.icon||'✨'}</span><div style="flex:1;min-width:0"><div class="stk-name">${esc(it.name)}</div><div class="hint">${x.price?fmt(x.price):'price not set'}${it.note?` · ${esc(it.note)}`:''}</div></div>${tag(x)}</div>
+    <div class="stk-top"><span class="stk-ic" aria-hidden="true">${it.icon||'✨'}</span><div style="flex:1;min-width:0"><div class="stk-name">${esc(it.name)}</div><div class="hint">${x.price?fmt(x.price):'price not set'}${it.note?` · ${esc(it.note)}`:''}</div><div class="stk-where stk-w-${stkWhere(it).kind}">${stkWhere(it).kind==='hh'?'🏠 Paid from Household contribution':stkWhere(it).kind==='cat'?'📒 Counts in '+esc(stkWhere(it).name):'Not counted in Month'}</div></div>${tag(x)}</div>
     ${x.end?`<div class="stk-bar" role="img" aria-label="${Math.round(x.used*100)}% used"><i style="width:${Math.max(x.used*100,3)}%;background:var(${col})"></i></div>
       <div class="row" style="justify-content:space-between;gap:8px;font-size:13px"><span class="muted">Bought ${dayLabel(x.last.date)}</span><span class="${x.left<0?'neg':''}">${x.left<0?`ran out ${-x.left} day${x.left===-1?'':'s'} ago`:x.left===0?'runs out today':`${x.left} day${x.left===1?'':'s'} left`}</span></div>
       <div class="hint">Next buy <b style="color:var(--ink)">${dayLabel(x.end)}</b> · lasts ${x.last.until?'':'about '}${x.lasts} days${it.estimated&&!x.last.until?' (estimate)':''} · ~${fmt0(x.price*30/x.lasts)}/month</div>`
@@ -994,12 +1037,21 @@ function viewStock(){
   return `
   <section><div><span class="eyebrow">Recurring purchases</span><h2>${fmt0(yearly/12)} a month for restocks</h2></div>
     <p class="hint" style="margin:4px 0 0">Each item tracks when you bought it, how long it lasts and when to buy again. Budgets come from price ÷ how long it lasts.</p>
+    <div class="flow-key"><span><b>📒 Your spending</b> Personal care, toiletries and supplements count in their Month category (Skincare, Hair Care, Hygiene & Toiletries, Gym Supplement) and in your budget.</span><span><b>🏠 Household money</b> Household & pantry is paid from your Household contribution, so it doesn't count again as your spending.</span><span class="muted">Synced from ${label(STK_SYNC_FROM)}. Tap 🛒 Bought here or pick the item in Month › Log a purchase; either way it shows in both places.</span></div>
     <div class="kpis">
       ${kpi('Yearly budget',fmt0(yearly),`${L.filter(x=>x.price&&x.lasts).length} of ${L.length} items priced`)}
       ${kpi('Monthly budget',fmt0(yearly/12),'average across the year')}
       ${kpi('Spent in '+yr,fmt0(spentYr),'on these items so far')}
       ${kpi('To buy soon',String(soon),soon?'running out within a week':'nothing running low',soon?'neg':'pos')}
     </div></section>
+  ${(()=>{const mk=TODAY.slice(0,7)<STK_SYNC_FROM?STK_SYNC_FROM:TODAY.slice(0,7),groups={};
+    for(const x of L){const m=stkMonthCat(x.it);if(!m)continue;const g=groups[m]||(groups[m]={avg:0,n:0});g.avg+=x.price&&x.lasts?x.price*30.4/x.lasts:0;g.n++}
+    const keys=Object.keys(groups).sort((a,b)=>(a==='@household')-(b==='@household'));if(!keys.length)return '';
+    return `<section class="panel"><div class="row" style="justify-content:space-between"><h3>Where restocks go in ${label(mk)}</h3><a class="muted" href="#month">Open Month</a></div>
+    <div class="scroll"><table><thead><tr><th>Counts in</th><th>Usual / month</th><th>Bought this month</th><th>Category budget</th></tr></thead><tbody>
+    ${keys.map(m=>{const isH=m==='@household',nm=isH?'🏠 Household contribution':'📒 '+esc(cats().find(c=>c.id===m)?.name||m),b=isH?(months[mk]?.household||0):(months[mk]?.items?.[m]?.budget||0),got=rsIn(mk,m).total;
+      return `<tr><td class="name">${nm}<br><span class="muted" style="font-size:12px">${groups[m].n} item${groups[m].n>1?'s':''}${isH?' · not your spending':''}</span></td><td>${fmt0(groups[m].avg)}</td><td>${fmt(got)}</td><td class="${b&&got>b?'neg':''}">${b?fmt(b)+(isH?' contributed':''):'<span class="muted">not set</span>'}</td></tr>`}).join('')}
+    </tbody></table></div><p class="hint">Usual / month is a guide for setting each category's budget in Month.</p></section>`})()}
   ${due.length?`<section class="panel"><div class="row" style="justify-content:space-between"><h3>🛒 Shopping list for ${MN[+ym.slice(5)-1]}</h3><span class="muted">${fmt(dueT)}</span></div>
     <div class="scroll"><table><tbody>${due.map(x=>`<tr><td class="name">${x.it.icon||'✨'} ${esc(x.it.name)}</td><td class="${x.left<0?'neg':'muted'}">${x.left<0?'now':dayLabel(x.end)}</td><td>${x.price?fmt(x.price):'—'}</td></tr>`).join('')}</tbody></table></div></section>`:''}
   ${STK_CATS.map(([cid,cn,ci])=>{const xs=L.filter(x=>(x.it.cat||'other')===cid).sort((a,b)=>(a.end?a.left:1e9)-(b.end?b.left:1e9));if(!xs.length)return '';
@@ -1010,6 +1062,7 @@ function viewStock(){
     <label>Name<input class="txt" name="name" required placeholder="e.g. Shampoo"></label>
     <label>Icon<select name="icon">${STK_ICONS.map(i=>`<option>${i}</option>`).join('')}</select></label>
     <label>Section<select name="cat">${STK_CATS.map(([id,n])=>`<option value="${id}">${n}</option>`).join('')}</select></label>
+    <label>Counts in<select name="mcat"><option value="auto">Automatic (by section)</option>${[['','Not counted in Month'],['@household','Household contribution (paid from it)']].concat(cats().filter(c=>c.group!=='lending').map(c=>[c.id,c.name+' · '+(GROUPS.find(g=>g.id===c.group)?.short||'')])).map(([v,n])=>`<option value="${v}" ${v===null?'selected':''}>${esc(n)}</option>`).join('')}</select></label>
     <label>Price ₱<input class="txt" name="price" data-calc inputmode="text" placeholder="0"></label>
     <label>Bought on<input class="txt" type="date" name="date" value="${TODAY}"></label>
     <label>Lasts until (if known)<input class="txt" type="date" name="until"></label>
@@ -1028,14 +1081,12 @@ function wireStock(){if(view!=='stock')return;
   on('[data-stkpdel]',b=>{const it=stock[b.dataset.stkpdel];it.purchases=(it.purchases||[]).filter(p=>p.date!==b.dataset.date);saveStock(b.dataset.stkpdel);render()});
   // "ran out today" records how long the last one actually lasted, so the next estimate is real
   on('[data-stkran]',b=>{const id=b.dataset.stkran,it=stock[id],x=stkInfo(it);if(!x.last)return;x.last.until=TODAY;it.purchases=x.ps;it.lastsDays=Math.max(1,Math.round((dms(TODAY)-dms(x.last.date))/DAYMS));it.estimated=false;saveStock(id);render();setStatus(`${it.name} lasted ${it.lastsDays} days`)});
-  app.querySelectorAll('form[data-stkbuy]').forEach(f=>f.addEventListener('submit',e=>{e.preventDefault();const id=f.dataset.stkbuy,it=stock[id],x=stkInfo(it),date=f.date.value||TODAY,price=num(f.price.value);
-    // buying again marks when the previous one ran out, unless that was already recorded
-    if(x.last&&!x.last.until&&date>x.last.date){x.last.until=date;it.lastsDays=Math.round((dms(date)-dms(x.last.date))/DAYMS);it.estimated=false}
-    it.purchases=x.ps.concat([{date,price:price||undefined}]).map(p=>JSON.parse(JSON.stringify(p)));if(price)it.price=price;stkBuy=null;saveStock(id);render();setStatus(`Restocked ${it.name}`)}));
+  app.querySelectorAll('form[data-stkbuy]').forEach(f=>f.addEventListener('submit',e=>{e.preventDefault();const id=f.dataset.stkbuy,it=stock[id],date=f.date.value||TODAY,price=num(f.price.value);
+    stkRecordBuy(id,date,price);stkBuy=null;render();setStatus(`Restocked ${it.name}`+(date.slice(0,7)>=STK_SYNC_FROM&&stkMonthCat(it)?` · counted in ${stkWhere(it).short}`:''))}));
   app.querySelectorAll('form[data-stkedit]').forEach(f=>f.addEventListener('submit',e=>{e.preventDefault();const id=f.dataset.stkedit,it=stock[id];
-    it.name=f.name.value.trim()||it.name;it.icon=f.icon.value;it.cat=f.cat.value;it.price=num(f.price.value)||0;const d=parseInt(f.days.value);if(d>0&&d!==it.lastsDays){it.lastsDays=d;it.estimated=false}it.note=f.note.value.trim();stkEdit=null;saveStock(id);render()}));
+    it.name=f.name.value.trim()||it.name;it.icon=f.icon.value;it.cat=f.cat.value;it.monthCat=f.mcat.value;it.price=num(f.price.value)||0;const d=parseInt(f.days.value);if(d>0&&d!==it.lastsDays){it.lastsDays=d;it.estimated=false}it.note=f.note.value.trim();stkEdit=null;saveStock(id);render()}));
   const a=document.getElementById('stkadd');if(a)a.addEventListener('submit',e=>{e.preventDefault();const name=a.name.value.trim();if(!name)return;const date=a.date.value,until=a.until.value,price=num(a.price.value),d=parseInt(a.days.value);
-    const id='s'+Date.now().toString(36);stock[id]={name,icon:a.icon.value,cat:a.cat.value,price:price||0,lastsDays:until&&date?Math.max(1,Math.round((dms(until)-dms(date))/DAYMS)):d>0?d:0,purchases:date?[{date,...(price?{price}:{}),...(until?{until}:{})}]:[],created:new Date().toISOString()};saveStock(id);render();setStatus(`Added ${name}`)});
+    const id='s'+Date.now().toString(36);stock[id]={name,icon:a.icon.value,cat:a.cat.value,...(a.mcat.value!=='auto'?{monthCat:a.mcat.value}:{}),price:price||0,lastsDays:until&&date?Math.max(1,Math.round((dms(until)-dms(date))/DAYMS)):d>0?d:0,purchases:date?[{date,...(price?{price}:{}),...(until?{until}:{})}]:[],created:new Date().toISOString()};saveStock(id);render();setStatus(`Added ${name}`)});
 }
 
 // ---------- wants cap & salary budget ----------
@@ -1073,10 +1124,10 @@ function wantsSection(ks){
 }
 // map each salary plan line to tracker categories
 function salaryUse(k){const P=settings.plan;if(!P||!P.lines)return null;const d=months[k]||{};
-  return {salary:P.lines.reduce((s,l)=>s+(l.amount||0),0),used:P.lines.reduce((s,l)=>s+(l.cats||[]).reduce((t,id)=>t+(d.items?.[id]?.actual||0),0),0)}}
+  return {salary:P.lines.reduce((s,l)=>s+(l.amount||0),0),used:P.lines.reduce((s,l)=>s+(l.cats||[]).reduce((t,id)=>t+catAct(k,id),0),0)}}
 function salarySection(k){
   const P=settings.plan;if(!P||!P.lines)return '';
-  const d=months[k]||{},spent=id=>d.items?.[id]?.actual||0;
+  const d=months[k]||{},spent=id=>catAct(k,id);
   const mapped=new Set(P.lines.flatMap(l=>l.cats||[]));
   const ci=capInfo(k);const lines=P.lines.map(l=>({...l,amount:l.id==='wants'&&ci.rollover?ci.cap:l.amount,carry:l.id==='wants'&&ci.rollover?ci.carry:0,v:(l.cats||[]).reduce((s,id)=>s+spent(id),0)}));
   const salary=lines.reduce((s,l)=>s+(l.amount||0)-(l.carry||0),0),used=lines.reduce((s,l)=>s+l.v,0);
@@ -1108,7 +1159,11 @@ function wire(){
   app.querySelectorAll('form.addcat').forEach(f=>f.addEventListener('submit',e=>{e.preventDefault();const inp=f.querySelector('input');const name=inp.value.trim();if(!name)return;
     const base=name.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')||'cat';let id='c-'+base,n=2;while(cats().some(c=>c.id===id))id='c-'+base+'-'+n++;
     settings.customCats=(settings.customCats||[]).concat([{id,name,group:f.dataset.g}]);inp.value='';saveSettings();render()}));
+  const ls=document.getElementById('log-stk');if(ls)ls.addEventListener('change',()=>{const it=stock[ls.value];if(!it)return;const m=stkMonthCat(it);if(m&&m!=='@household')document.getElementById('log-cat').value=m;const a=document.getElementById('log-amt');if(!a.value&&it.price)a.value=it.price});
   const lf=document.getElementById('logform');if(lf)lf.addEventListener('submit',e=>{e.preventDefault();const amt=num(document.getElementById('log-amt').value);if(!amt){document.getElementById('log-amt').focus();return}
+    const sid=ls&&ls.value;if(sid&&stock[sid]){const it=stock[sid],date=curMonth===TODAY.slice(0,7)?TODAY:curMonth+'-01';stkRecordBuy(sid,date,amt);
+      const d=monthDoc(curMonth),note=document.getElementById('log-note').value.trim();d.notes=(d.notes?d.notes.replace(/\s+$/,'')+'\n':'')+`${amt.toLocaleString('en-PH')} ${note||it.name} (restock)`;saveMonth(curMonth);render();
+      setStatus(curMonth<STK_SYNC_FROM?`Saved to ${it.name}. Months before ${label(STK_SYNC_FROM)} aren't synced, so add it to the category by hand.`:`Added ${fmt(amt)} to ${it.name} → ${stkWhere(it).name}`);return}
     const cid=document.getElementById('log-cat').value,note=document.getElementById('log-note').value.trim();const d=monthDoc(curMonth);const it=d.items[cid]||(d.items[cid]={budget:0,actual:0});
     it.actual=Math.round(((it.actual||0)+amt)*100)/100;const cname=cats().find(c=>c.id===cid)?.name||cid;
     d.notes=(d.notes?d.notes.replace(/\s+$/,'')+'\n':'')+`${amt.toLocaleString('en-PH')} ${note||cname}`;saveMonth(curMonth);render();const cw=monthCalc(curMonth).wants;const cc=cats().find(c=>c.id===cid);if(capOf(curMonth)&&cw>capOf(curMonth)&&cc?.group==='wants')setStatus(`Added. Wants are now ${fmt0(cw-capOf(curMonth))} over your cap`,true);else if(cc&&isShopping(cc)&&shopOf(curMonth)&&shopSpent(curMonth)>shopOf(curMonth))setStatus(`Added. Shopping is now ${fmt0(shopSpent(curMonth)-shopOf(curMonth))} over its ${fmt0(shopOf(curMonth))} limit`,true);else setStatus(`Added ${fmt(amt)} to ${cname}`)});
