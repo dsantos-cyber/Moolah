@@ -152,6 +152,8 @@ form.log input,form.log select{width:100%;min-width:0}
 .stk-top{display:flex;gap:12px;align-items:center}
 .stk-ic{width:44px;height:44px;flex:0 0 44px;border-radius:14px;display:grid;place-items:center;font-size:24px;background:var(--accent-soft)}
 .stk-name{font-weight:600;line-height:1.25}
+.kpi-link{all:unset;display:grid;cursor:pointer;border-radius:16px}.kpi-link>.kpi{height:100%;box-sizing:border-box;transition:transform .15s}.kpi-link:hover>.kpi{transform:translateY(-2px)}.kpi-link:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+#stk-soon{scroll-margin-top:calc(var(--hdr,120px) + 12px)}
 .stk-where{font-size:12px;margin-top:2px;color:var(--muted)}.stk-w-hh{color:var(--ok);font-weight:600}.stk-w-cat{color:var(--accent);font-weight:600}
 .flow-key{display:grid;gap:6px;margin-top:10px;font-size:13px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 12px}.flow-key b{margin-right:4px}
 .rs-note{font-size:12px;color:var(--muted)}.hh-box{border:1px dashed var(--line);border-radius:12px;padding:10px 12px;margin-top:10px}
@@ -959,7 +961,7 @@ function migrateSettings4(){
 // ---------- recurring purchases: when each item was bought, how long it lasts, when to buy again ----------
 const STK_CATS=[['personal','Personal care','💆‍♀️'],['toiletries','Toiletries','🧻'],['supplements','Supplements','💪'],['household','Household & pantry','🏠'],['other','Other','✨']];
 const STK_ICONS=['🧴','🧼','🫧','🪥','🧻','🌸','💆‍♀️','💇‍♀️','🧽','🧺','🍽️','🍚','☕','🥛','🍳','🫙','🥫','🧂','💪','💊','🐾','🏠','✨'];
-let stkEdit=null,stkBuy=null,stkDel=null,rsCache=null;
+let stkEdit=null,stkBuy=null,stkDel=null,rsCache=null,stkOnly=false;
 // Restock purchases from this month on count in Month automatically (earlier ones were already typed in by hand)
 const STK_SYNC_FROM='2026-11';
 // which Month category an item's purchases count in; '@household' = paid from the household contribution
@@ -1045,7 +1047,7 @@ function viewStock(){
       ${kpi('Yearly budget',fmt0(yearly),`${yLbl} · ${L.filter(x=>x.price&&x.lasts).length} of ${L.length} items priced`)}
       ${kpi('Monthly budget',fmt0(yearly/12),'average across the year')}
       ${kpi('Spent this budget year',fmt0(spentYr),`since ${label(ys)} · ${fmt0(yearly-spentYr)} ${yearly-spentYr<0?'over':'left'}`,spentYr>yearly?'neg':'')}
-      ${kpi('To buy soon',String(soon),soon?'running out within a week':'nothing running low',soon?'neg':'pos')}
+      ${soon?`<button type="button" class="kpi-link" data-stksoon aria-label="Show the ${soon} items that need restocking">${kpi('To buy soon',String(soon),'running out within a week · tap to see them ›','neg')}</button>`:kpi('To buy soon','0','nothing running low','pos')}
     </div>
     <div class="capbar" style="margin-top:10px"><div class="track"><i style="width:${Math.min(yearly?spentYr/yearly:0,1)*100}%;background:var(${spentYr>yearly?'--over':'--s6'})"></i></div><span class="hint">${pct(yearly?spentYr/yearly:0)} of the ${yLbl} budget used. The year starts with your first tracked purchase (${dayLabel(first)}).</span></div></section>
   ${(()=>{const mk=TODAY.slice(0,7)<STK_SYNC_FROM?STK_SYNC_FROM:TODAY.slice(0,7),groups={};
@@ -1058,7 +1060,9 @@ function viewStock(){
     </tbody></table></div><p class="hint">Usual / month is a guide for setting each category's budget in Month.</p></section>`})()}
   ${due.length?`<section class="panel"><div class="row" style="justify-content:space-between"><h3>🛒 Shopping list for ${MN[+ym.slice(5)-1]}</h3><span class="muted">${fmt(dueT)}</span></div>
     <div class="scroll"><table><tbody>${due.map(x=>`<tr><td class="name">${x.it.icon||'✨'} ${esc(x.it.name)}</td><td class="${x.left<0?'neg':'muted'}">${x.left<0?'now':dayLabel(x.end)}</td><td>${x.price?fmt(x.price):'—'}</td></tr>`).join('')}</tbody></table></div></section>`:''}
-  ${STK_CATS.map(([cid,cn,ci])=>{const xs=L.filter(x=>(x.it.cat||'other')===cid).sort((a,b)=>(a.end?a.left:1e9)-(b.end?b.left:1e9));if(!xs.length)return '';
+  ${stkOnly&&soon?`<section id="stk-soon"><div class="row" style="justify-content:space-between;margin-bottom:10px"><h3>⏰ Needs restocking</h3><button type="button" class="link" data-stkall>Show all items</button></div>
+    <div class="grid3">${L.filter(x=>x.status==='now'||x.status==='soon').sort((a,b)=>a.left-b.left).map(card).join('')}</div></section>`:''}
+  ${stkOnly&&soon?'':STK_CATS.map(([cid,cn,ci])=>{const xs=L.filter(x=>(x.it.cat||'other')===cid).sort((a,b)=>(a.end?a.left:1e9)-(b.end?b.left:1e9));if(!xs.length)return '';
     const yc=xs.reduce((s,x)=>s+(x.price&&x.lasts?x.price*365/x.lasts:0),0);
     return `<section><div class="row" style="justify-content:space-between;margin-bottom:10px"><h3>${ci} ${cn}</h3><span class="muted">${fmt0(yc/12)}/month · ${fmt0(yc)}/year</span></div><div class="grid3">${xs.map(card).join('')}</div></section>`}).join('')}
   ${L.length?'':`<div class="panel empty">No items yet. Add the things you buy again and again below.</div>`}
@@ -1077,6 +1081,8 @@ function viewStock(){
 function saveStock(id){persist('stock/'+id,()=>stock[id])}
 function wireStock(){if(view!=='stock')return;
   const on=(sel,fn)=>app.querySelectorAll(sel).forEach(b=>b.addEventListener('click',()=>fn(b)));
+  on('[data-stksoon]',()=>{stkOnly=true;render();document.getElementById('stk-soon')?.scrollIntoView({behavior:'smooth',block:'start'})});
+  on('[data-stkall]',()=>{stkOnly=false;render()});
   on('[data-stkbuyask]',b=>{stkBuy=b.dataset.stkbuyask;stkEdit=null;render()});
   on('[data-stkeditask]',b=>{stkEdit=b.dataset.stkeditask;stkBuy=null;stkDel=null;render()});
   on('[data-stkcancel]',()=>{stkBuy=stkEdit=stkDel=null;render()});
