@@ -1008,7 +1008,10 @@ function stkList(){return Object.entries(stock||{}).map(([id,it])=>({id,...stkIn
 function viewStock(){
   const L=stkList(),yr=TODAY.slice(0,4),ym=TODAY.slice(0,7);
   const yearly=L.reduce((s,x)=>s+(x.price&&x.lasts?x.price*365/x.lasts:0),0);
-  const spentYr=L.reduce((s,x)=>s+x.ps.filter(p=>p.date.startsWith(yr)).reduce((t,p)=>t+(p.price||0),0),0);
+  // the budget year starts the month of the first tracked purchase and runs 12 months, then rolls over
+  const first=L.flatMap(x=>x.ps.map(p=>p.date)).sort()[0]||TODAY;let ys=first.slice(0,7);const mAdd=(k,n)=>{const t=+k.slice(0,4)*12+(+k.slice(5,7)-1)+n;return `${Math.floor(t/12)}-${pad2(t%12+1)}`};
+  while(mAdd(ys,12)<=ym)ys=mAdd(ys,12);const ye=mAdd(ys,12),yLbl=`${label(ys)} – ${label(mAdd(ys,11))}`;
+  const spentYr=L.reduce((s,x)=>s+x.ps.filter(p=>p.date.slice(0,7)>=ys&&p.date.slice(0,7)<ye).reduce((t,p)=>t+(p.price||0),0),0);
   const due=L.filter(x=>x.end&&(x.left<0||x.end.slice(0,7)<=ym)).sort((a,b)=>a.left-b.left),dueT=due.reduce((s,x)=>s+(x.price||0),0);
   const soon=L.filter(x=>x.status==='now'||x.status==='soon').length;
   const tag=x=>x.status==='now'?`<span class="stk-tag stk-now">Restock now</span>`:x.status==='soon'?`<span class="stk-tag stk-soon">Buy soon</span>`:x.status==='ok'?`<span class="stk-tag stk-ok">In stock</span>`:`<span class="stk-tag stk-unk">${x.status==='new'?'Add a purchase':'Set how long it lasts'}</span>`;
@@ -1039,11 +1042,12 @@ function viewStock(){
     <p class="hint" style="margin:4px 0 0">Each item tracks when you bought it, how long it lasts and when to buy again. Budgets come from price ÷ how long it lasts.</p>
     <div class="flow-key"><span><b>📒 Your spending</b> Personal care, toiletries and supplements count in their Month category (Skincare, Hair Care, Hygiene & Toiletries, Gym Supplement) and in your budget.</span><span><b>🏠 Household money</b> Household & pantry is paid from your Household contribution, so it doesn't count again as your spending.</span><span class="muted">Synced from ${label(STK_SYNC_FROM)}. Tap 🛒 Bought here or pick the item in Month › Log a purchase; either way it shows in both places.</span></div>
     <div class="kpis">
-      ${kpi('Yearly budget',fmt0(yearly),`${L.filter(x=>x.price&&x.lasts).length} of ${L.length} items priced`)}
+      ${kpi('Yearly budget',fmt0(yearly),`${yLbl} · ${L.filter(x=>x.price&&x.lasts).length} of ${L.length} items priced`)}
       ${kpi('Monthly budget',fmt0(yearly/12),'average across the year')}
-      ${kpi('Spent in '+yr,fmt0(spentYr),'on these items so far')}
+      ${kpi('Spent this budget year',fmt0(spentYr),`since ${label(ys)} · ${fmt0(yearly-spentYr)} ${yearly-spentYr<0?'over':'left'}`,spentYr>yearly?'neg':'')}
       ${kpi('To buy soon',String(soon),soon?'running out within a week':'nothing running low',soon?'neg':'pos')}
-    </div></section>
+    </div>
+    <div class="capbar" style="margin-top:10px"><div class="track"><i style="width:${Math.min(yearly?spentYr/yearly:0,1)*100}%;background:var(${spentYr>yearly?'--over':'--s6'})"></i></div><span class="hint">${pct(yearly?spentYr/yearly:0)} of the ${yLbl} budget used. The year starts with your first tracked purchase (${dayLabel(first)}).</span></div></section>
   ${(()=>{const mk=TODAY.slice(0,7)<STK_SYNC_FROM?STK_SYNC_FROM:TODAY.slice(0,7),groups={};
     for(const x of L){const m=stkMonthCat(x.it);if(!m)continue;const g=groups[m]||(groups[m]={avg:0,n:0});g.avg+=x.price&&x.lasts?x.price*30.4/x.lasts:0;g.n++}
     const keys=Object.keys(groups).sort((a,b)=>(a==='@household')-(b==='@household'));if(!keys.length)return '';
