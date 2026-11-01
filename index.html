@@ -148,6 +148,16 @@ form.log input,form.log select{width:100%;min-width:0}
 .pie{width:100%;height:auto;display:block}
 .pie-l{fill:var(--on-series);font:600 11px var(--body)}
 @media (max-width:480px){.pie-wrap{grid-template-columns:1fr}.pie{max-width:220px;margin:0 auto}}
+.stk-card{display:grid;gap:8px;align-content:start}
+.stk-top{display:flex;gap:12px;align-items:center}
+.stk-ic{width:44px;height:44px;flex:0 0 44px;border-radius:14px;display:grid;place-items:center;font-size:24px;background:var(--accent-soft)}
+.stk-name{font-weight:600;line-height:1.25}
+.stk-bar{height:10px;border-radius:999px;background:var(--sunk);overflow:hidden}.stk-bar i{display:block;height:100%;border-radius:999px}
+.stk-tag{display:inline-block;font-size:11px;font-weight:700;padding:2px 9px;border-radius:999px;white-space:nowrap}
+.stk-ok{background:#e3f4e8;color:#2f7a4d}.stk-soon{background:#fdf0d3;color:#9a6a12}.stk-now{background:var(--over-soft);color:var(--over)}.stk-unk{background:var(--sunk);color:var(--muted)}
+:root[data-ph="dark"] .stk-ok{background:#24402f;color:#9fe0b7}:root[data-ph="dark"] .stk-soon{background:#463a1d;color:#f3cf7f}
+.stk-form{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,130px),1fr));gap:8px;align-items:end}
+.stk-form label{display:grid;gap:4px;font-size:12px;color:var(--muted);font-weight:600;min-width:0}.stk-form input,.stk-form select{width:100%;min-width:0}
 .warn{background:var(--over-soft);color:var(--over);border:1px solid var(--over);border-radius:12px;padding:12px 16px}
 .capbar{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center;font-size:13px}
 .tag{font-size:11px;font-weight:600;padding:1px 8px;border-radius:999px;background:var(--accent-soft);color:var(--accent)}
@@ -209,6 +219,7 @@ form.payform button{grid-column:1/-1}
     <a href="#plan" data-v="plan"><span class="hide-sm">Savings plan</span><span class="show-sm">Plan</span></a>
     <a href="#lending" data-v="lending">Lending</a>
     <a href="#bigplans" data-v="bigplans"><span class="hide-sm">Sinking Funds</span><span class="show-sm">Sinking</span></a>
+    <a href="#stock" data-v="stock"><span class="hide-sm">Recurring purchases</span><span class="show-sm">Restock</span></a>
   </nav>
   <div class="modegrp"><span class="today" id="today"></span><button class="modebtn" id="modebtn" type="button" title="Switch between automatic (Philippine time), light and dark">Auto</button></div>
   <span class="status" id="status" aria-live="polite"></span>
@@ -330,7 +341,7 @@ function render(){
   document.querySelectorAll('nav a').forEach(x=>{if(x.dataset.v===view)x.setAttribute('aria-current','page');else x.removeAttribute('aria-current')});
   if(!loaded){return}
   capMemo={};
-  app.innerHTML=view==='month'?viewMonth():view==='goals'?viewGoals():view==='plan'?viewPlan():view==='lending'?viewLending():view==='bigplans'?viewBigPlans():viewOverview();
+  app.innerHTML=view==='month'?viewMonth():view==='goals'?viewGoals():view==='plan'?viewPlan():view==='lending'?viewLending():view==='bigplans'?viewBigPlans():view==='stock'?viewStock():viewOverview();
   wire();
   // give each section and number card its own pastel
   app.querySelectorAll('.panel').forEach((el,i)=>el.style.setProperty('--tint',`var(--t${i%6+1})`));
@@ -710,7 +721,7 @@ function pie(parts){
 }
 
 // ---------- lending & collections ----------
-let loans={}, confirmDel=null, pendingFocus=null;
+let loans={}, stock={}, confirmDel=null, pendingFocus=null;
 const pad2=n=>String(n).padStart(2,'0');
 const TODAY=`${now.getFullYear()}-${pad2(now.getMonth()+1)}-${pad2(now.getDate())}`;
 const r2=v=>Math.round(v*100)/100;
@@ -938,6 +949,95 @@ function migrateSettings4(){
   if(!canWrite||(settings.mig||0)!==3)return;const P=settings.plan;
   if(P&&P.rules)P.rules=P.rules.map(r=>r.replace(/Big Plans Fund/g,'Sinking Funds'));settings.mig=4;saveSettings()}
 
+
+// ---------- recurring purchases: when each item was bought, how long it lasts, when to buy again ----------
+const STK_CATS=[['personal','Personal care','💆‍♀️'],['toiletries','Toiletries','🧻'],['supplements','Supplements','💪'],['household','Household & pantry','🏠'],['other','Other','✨']];
+const STK_ICONS=['🧴','🧼','🫧','🪥','🧻','🌸','💆‍♀️','💇‍♀️','🧽','🧺','🍽️','🍚','☕','🥛','🍳','🫙','🥫','🧂','💪','💊','🐾','🏠','✨'];
+let stkEdit=null,stkBuy=null,stkDel=null;
+const DAYMS=86400000,dms=d=>Date.UTC(+d.slice(0,4),+d.slice(5,7)-1,+d.slice(8,10)),addDays=(d,n)=>new Date(dms(d)+n*DAYMS).toISOString().slice(0,10);
+function stkInfo(it){const ps=(it.purchases||[]).filter(x=>x.date).slice().sort((a,b)=>a.date.localeCompare(b.date)),last=ps[ps.length-1];
+  const price=last?.price??it.price??0;let lasts=it.lastsDays||0;
+  // a known "lasted until" date beats the estimate
+  if(last?.until)lasts=Math.max(1,Math.round((dms(last.until)-dms(last.date))/DAYMS));
+  if(!last||!lasts)return {it,price,lasts,last,ps,status:last?'unk':'new'};
+  const end=addDays(last.date,lasts),left=Math.round((dms(end)-dms(TODAY))/DAYMS),used=Math.min(Math.max((dms(TODAY)-dms(last.date))/(lasts*DAYMS),0),1);
+  return {it,price,lasts,last,ps,end,left,used,status:left<0?'now':left<=7?'soon':'ok'}}
+function stkList(){return Object.entries(stock||{}).map(([id,it])=>({id,...stkInfo(it)}))}
+function viewStock(){
+  const L=stkList(),yr=TODAY.slice(0,4),ym=TODAY.slice(0,7);
+  const yearly=L.reduce((s,x)=>s+(x.price&&x.lasts?x.price*365/x.lasts:0),0);
+  const spentYr=L.reduce((s,x)=>s+x.ps.filter(p=>p.date.startsWith(yr)).reduce((t,p)=>t+(p.price||0),0),0);
+  const due=L.filter(x=>x.end&&(x.left<0||x.end.slice(0,7)<=ym)).sort((a,b)=>a.left-b.left),dueT=due.reduce((s,x)=>s+(x.price||0),0);
+  const soon=L.filter(x=>x.status==='now'||x.status==='soon').length;
+  const tag=x=>x.status==='now'?`<span class="stk-tag stk-now">Restock now</span>`:x.status==='soon'?`<span class="stk-tag stk-soon">Buy soon</span>`:x.status==='ok'?`<span class="stk-tag stk-ok">In stock</span>`:`<span class="stk-tag stk-unk">${x.status==='new'?'Add a purchase':'Set how long it lasts'}</span>`;
+  const card=x=>{const it=x.it,col=x.status==='now'?'--over':x.status==='soon'?'--s4':'--s6';
+    if(stkEdit===x.id)return `<section class="panel stk-card"><form class="stk-form" data-stkedit="${x.id}">
+      <label>Name<input class="txt" name="name" value="${esc(it.name)}" required></label>
+      <label>Icon<select name="icon">${STK_ICONS.map(i=>`<option ${i===it.icon?'selected':''}>${i}</option>`).join('')}</select></label>
+      <label>Section<select name="cat">${STK_CATS.map(([id,n])=>`<option value="${id}" ${id===it.cat?'selected':''}>${n}</option>`).join('')}</select></label>
+      <label>Usual price ₱<input class="txt" name="price" data-calc inputmode="text" value="${editVal(it.price)}"></label>
+      <label>Lasts (days)<input class="txt" name="days" inputmode="numeric" value="${it.lastsDays||''}"></label>
+      <label>Note<input class="txt" name="note" value="${esc(it.note||'')}"></label>
+      <div class="row" style="gap:8px"><button class="primary" type="submit">Save</button><button type="button" class="link" data-stkcancel>Cancel</button></div></form>
+      ${x.ps.length?`<div class="scroll"><table><thead><tr><th>Bought</th><th>Price</th><th>Lasted until</th><th></th></tr></thead><tbody>${x.ps.map((p,i)=>`<tr><td>${dayLabel(p.date)}</td><td>${p.price?fmt(p.price):'—'}</td><td>${p.until?dayLabel(p.until):'—'}</td><td><button type="button" class="link" data-stkpdel="${x.id}" data-date="${p.date}">Remove</button></td></tr>`).join('')}</tbody></table></div>`:''}
+      ${stkDel===x.id?`<div class="row" style="gap:8px"><span class="neg">Delete ${esc(it.name)}?</span><button type="button" data-stkdelyes="${x.id}">Delete</button><button type="button" class="link" data-stkcancel>Keep</button></div>`:`<button type="button" class="link" data-stkdel="${x.id}" style="justify-self:start">Delete item</button>`}</section>`;
+    return `<section class="panel stk-card">
+    <div class="stk-top"><span class="stk-ic" aria-hidden="true">${it.icon||'✨'}</span><div style="flex:1;min-width:0"><div class="stk-name">${esc(it.name)}</div><div class="hint">${x.price?fmt(x.price):'price not set'}${it.note?` · ${esc(it.note)}`:''}</div></div>${tag(x)}</div>
+    ${x.end?`<div class="stk-bar" role="img" aria-label="${Math.round(x.used*100)}% used"><i style="width:${Math.max(x.used*100,3)}%;background:var(${col})"></i></div>
+      <div class="row" style="justify-content:space-between;gap:8px;font-size:13px"><span class="muted">Bought ${dayLabel(x.last.date)}</span><span class="${x.left<0?'neg':''}">${x.left<0?`ran out ${-x.left} day${x.left===-1?'':'s'} ago`:x.left===0?'runs out today':`${x.left} day${x.left===1?'':'s'} left`}</span></div>
+      <div class="hint">Next buy <b style="color:var(--ink)">${dayLabel(x.end)}</b> · lasts ${x.last.until?'':'about '}${x.lasts} days${it.estimated&&!x.last.until?' (estimate)':''} · ~${fmt0(x.price*30/x.lasts)}/month</div>`
+      :`<p class="hint" style="margin:0">${x.last?`Bought ${dayLabel(x.last.date)}. Tap Edit to set how many days it lasts.`:'Tap Bought to add when you bought it.'}</p>`}
+    ${stkBuy===x.id?`<form class="stk-form" data-stkbuy="${x.id}"><label>Bought on<input class="txt" type="date" name="date" value="${TODAY}" required></label><label>Price ₱<input class="txt" name="price" data-calc inputmode="text" value="${editVal(x.price)}"></label>
+      <div class="row" style="gap:8px"><button class="primary" type="submit">Save</button><button type="button" class="link" data-stkcancel>Cancel</button></div></form>`
+      :canWrite?`<div class="row" style="gap:8px"><button type="button" data-stkbuyask="${x.id}">🛒 Bought</button>${x.last&&!x.last.until?`<button type="button" class="link" data-stkran="${x.id}">Ran out today</button>`:''}<button type="button" class="link" data-stkeditask="${x.id}" style="margin-left:auto">Edit</button></div>`:''}
+  </section>`};
+  return `
+  <section><div><span class="eyebrow">Recurring purchases</span><h2>${fmt0(yearly/12)} a month for restocks</h2></div>
+    <p class="hint" style="margin:4px 0 0">Each item tracks when you bought it, how long it lasts and when to buy again. Budgets come from price ÷ how long it lasts.</p>
+    <div class="kpis">
+      ${kpi('Yearly budget',fmt0(yearly),`${L.filter(x=>x.price&&x.lasts).length} of ${L.length} items priced`)}
+      ${kpi('Monthly budget',fmt0(yearly/12),'average across the year')}
+      ${kpi('Spent in '+yr,fmt0(spentYr),'on these items so far')}
+      ${kpi('To buy soon',String(soon),soon?'running out within a week':'nothing running low',soon?'neg':'pos')}
+    </div></section>
+  ${due.length?`<section class="panel"><div class="row" style="justify-content:space-between"><h3>🛒 Shopping list for ${MN[+ym.slice(5)-1]}</h3><span class="muted">${fmt(dueT)}</span></div>
+    <div class="scroll"><table><tbody>${due.map(x=>`<tr><td class="name">${x.it.icon||'✨'} ${esc(x.it.name)}</td><td class="${x.left<0?'neg':'muted'}">${x.left<0?'now':dayLabel(x.end)}</td><td>${x.price?fmt(x.price):'—'}</td></tr>`).join('')}</tbody></table></div></section>`:''}
+  ${STK_CATS.map(([cid,cn,ci])=>{const xs=L.filter(x=>(x.it.cat||'other')===cid).sort((a,b)=>(a.end?a.left:1e9)-(b.end?b.left:1e9));if(!xs.length)return '';
+    const yc=xs.reduce((s,x)=>s+(x.price&&x.lasts?x.price*365/x.lasts:0),0);
+    return `<section><div class="row" style="justify-content:space-between;margin-bottom:10px"><h3>${ci} ${cn}</h3><span class="muted">${fmt0(yc/12)}/month · ${fmt0(yc)}/year</span></div><div class="grid3">${xs.map(card).join('')}</div></section>`}).join('')}
+  ${L.length?'':`<div class="panel empty">No items yet. Add the things you buy again and again below.</div>`}
+  ${canWrite?`<section class="panel"><h3>Add an item</h3><form class="stk-form" id="stkadd" style="margin-top:8px">
+    <label>Name<input class="txt" name="name" required placeholder="e.g. Shampoo"></label>
+    <label>Icon<select name="icon">${STK_ICONS.map(i=>`<option>${i}</option>`).join('')}</select></label>
+    <label>Section<select name="cat">${STK_CATS.map(([id,n])=>`<option value="${id}">${n}</option>`).join('')}</select></label>
+    <label>Price ₱<input class="txt" name="price" data-calc inputmode="text" placeholder="0"></label>
+    <label>Bought on<input class="txt" type="date" name="date" value="${TODAY}"></label>
+    <label>Lasts until (if known)<input class="txt" type="date" name="until"></label>
+    <label>Or lasts (days)<input class="txt" name="days" inputmode="numeric" placeholder="e.g. 60"></label>
+    <button class="primary" type="submit">Add</button></form>
+    <p class="hint">Not sure how long it lasts? Leave it blank and tap <b>Ran out today</b> when it's finished, and the app learns it for next time.</p></section>`:''}`;
+}
+function saveStock(id){persist('stock/'+id,()=>stock[id])}
+function wireStock(){if(view!=='stock')return;
+  const on=(sel,fn)=>app.querySelectorAll(sel).forEach(b=>b.addEventListener('click',()=>fn(b)));
+  on('[data-stkbuyask]',b=>{stkBuy=b.dataset.stkbuyask;stkEdit=null;render()});
+  on('[data-stkeditask]',b=>{stkEdit=b.dataset.stkeditask;stkBuy=null;stkDel=null;render()});
+  on('[data-stkcancel]',()=>{stkBuy=stkEdit=stkDel=null;render()});
+  on('[data-stkdel]',b=>{stkDel=b.dataset.stkdel;render()});
+  on('[data-stkdelyes]',async b=>{const id=b.dataset.stkdelyes,old=stock[id];delete stock[id];stkEdit=stkDel=null;render();try{await db.doc('stock/'+id).delete();setStatus('Item deleted')}catch(_){stock[id]=old;render();setStatus('Could not delete. Try again.',true)}});
+  on('[data-stkpdel]',b=>{const it=stock[b.dataset.stkpdel];it.purchases=(it.purchases||[]).filter(p=>p.date!==b.dataset.date);saveStock(b.dataset.stkpdel);render()});
+  // "ran out today" records how long the last one actually lasted, so the next estimate is real
+  on('[data-stkran]',b=>{const id=b.dataset.stkran,it=stock[id],x=stkInfo(it);if(!x.last)return;x.last.until=TODAY;it.purchases=x.ps;it.lastsDays=Math.max(1,Math.round((dms(TODAY)-dms(x.last.date))/DAYMS));it.estimated=false;saveStock(id);render();setStatus(`${it.name} lasted ${it.lastsDays} days`)});
+  app.querySelectorAll('form[data-stkbuy]').forEach(f=>f.addEventListener('submit',e=>{e.preventDefault();const id=f.dataset.stkbuy,it=stock[id],x=stkInfo(it),date=f.date.value||TODAY,price=num(f.price.value);
+    // buying again marks when the previous one ran out, unless that was already recorded
+    if(x.last&&!x.last.until&&date>x.last.date){x.last.until=date;it.lastsDays=Math.round((dms(date)-dms(x.last.date))/DAYMS);it.estimated=false}
+    it.purchases=x.ps.concat([{date,price:price||undefined}]).map(p=>JSON.parse(JSON.stringify(p)));if(price)it.price=price;stkBuy=null;saveStock(id);render();setStatus(`Restocked ${it.name}`)}));
+  app.querySelectorAll('form[data-stkedit]').forEach(f=>f.addEventListener('submit',e=>{e.preventDefault();const id=f.dataset.stkedit,it=stock[id];
+    it.name=f.name.value.trim()||it.name;it.icon=f.icon.value;it.cat=f.cat.value;it.price=num(f.price.value)||0;const d=parseInt(f.days.value);if(d>0&&d!==it.lastsDays){it.lastsDays=d;it.estimated=false}it.note=f.note.value.trim();stkEdit=null;saveStock(id);render()}));
+  const a=document.getElementById('stkadd');if(a)a.addEventListener('submit',e=>{e.preventDefault();const name=a.name.value.trim();if(!name)return;const date=a.date.value,until=a.until.value,price=num(a.price.value),d=parseInt(a.days.value);
+    const id='s'+Date.now().toString(36);stock[id]={name,icon:a.icon.value,cat:a.cat.value,price:price||0,lastsDays:until&&date?Math.max(1,Math.round((dms(until)-dms(date))/DAYMS)):d>0?d:0,purchases:date?[{date,...(price?{price}:{}),...(until?{until}:{})}]:[],created:new Date().toISOString()};saveStock(id);render();setStatus(`Added ${name}`)});
+}
+
 // ---------- wants cap & salary budget ----------
 let wantsMonth='all';
 function wantsSection(ks){
@@ -996,7 +1096,7 @@ function salarySection(k){
 
 // ---------- interactions ----------
 function wire(){
-  wireLending();wireBigPlans();
+  wireLending();wireBigPlans();wireStock();
   const wp=document.getElementById('wantspick');if(wp)wp.addEventListener('change',()=>{wantsMonth=wp.value;render()});
   app.querySelectorAll('[data-wm]').forEach(el=>el.addEventListener('click',()=>{wantsMonth=el.dataset.wm;render()}));
   app.querySelectorAll('input.num').forEach(el=>el.addEventListener('change',onNum));
@@ -1034,7 +1134,7 @@ function onNum(e){const el=e.target;let v;try{v=calc(el.value)}catch(_){el.value
   if(f==='sav'){const s=d.savings[c]||(d.savings[c]={});if(el.value.trim()==='')delete s[k];else s[k]=v;if(!Object.keys(s).length)delete d.savings[c]}
   saveMonth(curMonth);render();
 }
-function route(){const h=location.hash.slice(1);view=['overview','month','goals','plan','lending','bigplans'].includes(h)?h:'overview';render()}
+function route(){const h=location.hash.slice(1);view=['overview','month','goals','plan','lending','bigplans','stock'].includes(h)?h:'overview';render()}
 // "=" or Enter in an amount box works the sum out; a running total shows while typing
 app.addEventListener('keydown',e=>{const el=e.target;if(!el.matches||!el.matches('input[data-calc]'))return;
   if(e.key==='='||(e.key==='Enter'&&el.classList.contains('num'))){e.preventDefault();let v;try{v=calc(el.value)}catch(_){setStatus("That amount didn't add up. Use numbers with + − × ÷.",true);return}
@@ -1090,7 +1190,7 @@ function importView(){
       for(const [col,docs] of Object.entries(data))for(const [id,body] of Object.entries(docs||{})){if(!['months','loans','settings'].includes(col))continue;await db.doc(col+'/'+id).set(body);n++}
       setStatus(`Imported ${n} records`)}catch(err){setStatus("That file couldn't be read. Choose the moolah-data .json file.",true)}});
 }
-async function exportData(){const out={months,loans,settings:{main:settings}};const blob=new Blob([JSON.stringify(out,null,2)],{type:'application/json'});
+async function exportData(){const out={months,loans,stock,settings:{main:settings}};const blob=new Blob([JSON.stringify(out,null,2)],{type:'application/json'});
   // on phones the share sheet is the reliable way to save a file from a home-screen app
   const file=new File([blob],`moolah-data-${TODAY}.json`,{type:'application/json'});
   if(matchMedia('(pointer:coarse)').matches&&navigator.canShare&&navigator.canShare({files:[file]})){try{await navigator.share({files:[file],title:'Moolah backup'});return}catch(e){if(e&&e.name==='AbortError')return}}
@@ -1104,7 +1204,7 @@ async function exportData(){const out={months,loans,settings:{main:settings}};co
   let unsub=[];
   firebase.auth().getRedirectResult().catch(e=>signInView(authMsg(e)));
   firebase.auth().onAuthStateChanged(u=>{
-    unsub.forEach(f=>f());unsub=[];loaded=false;months={};loans={};settings={sources:{},customCats:[],goals:{}};
+    unsub.forEach(f=>f());unsub=[];loaded=false;months={};loans={};stock={};settings={sources:{},customCats:[],goals:{}};
     if(!u){foot.hidden=true;signInView();return}
     db=firestoreDb(fs,u.uid);canWrite=true;
     foot.hidden=false;foot.querySelector('#who').textContent=u.email||u.displayName||'you';
@@ -1118,17 +1218,21 @@ async function exportData(){const out={months,loans,settings:{main:settings}};co
       e=>{setStatus('Live updates stopped. Reload to reconnect.',true)}));
     unsub.push(db.collection('loans').onSnapshot(snap=>{const next={};for(const doc of snap.docs)next[doc.id]=saving['loans/'+doc.id]?loans[doc.id]:clone(doc.data());
       for(const p in saving)if(p.startsWith('loans/'))next[p.slice(6)]=loans[p.slice(6)];loans=next;gotL=true;ready()},()=>{gotL=true;ready()}));
+    unsub.push(db.collection('stock').onSnapshot(snap=>{const next={};for(const doc of snap.docs)next[doc.id]=saving['stock/'+doc.id]?stock[doc.id]:clone(doc.data());
+      for(const p in saving)if(p.startsWith('stock/'))next[p.slice(6)]=stock[p.slice(6)];stock=next;if(loaded)render()},()=>{}));
     unsub.push(db.doc('settings/main').onSnapshot(snap=>{sExists=snap.exists;if(!saving['settings/main']&&snap.exists)settings=clone(snap.data());gotS=true;ready()},()=>{gotS=true;ready()}));
   });
   document.getElementById('signout').addEventListener('click',()=>firebase.auth().signOut());
   document.getElementById('export').addEventListener('click',exportData);
   // replace this account's data with a backup file (from the app or the claude.ai page)
   document.getElementById('loadbackup').addEventListener('change',async e=>{const f=e.target.files[0];e.target.value='';if(!f||!db)return;
-    try{const data=JSON.parse(await f.text());if(!data.months||!data.settings?.main)throw new Error('shape');setStatus('Loading backup…');let n=0;
-      for(const [id,b] of Object.entries(data.months))if(/^\d{4}-\d{2}$/.test(id)){await db.doc('months/'+id).set(b);n++}
-      for(const [id,b] of Object.entries(data.loans||{})){await db.doc('loans/'+id).set(b);n++}
-      for(const id of Object.keys(loans))if(!(data.loans||{})[id]){await db.doc('loans/'+id).delete();n++}
-      await db.doc('settings/main').set(data.settings.main);n++;setStatus(`Loaded ${n} records from the backup`)}
+    try{const data=JSON.parse(await f.text());if(!data.months&&!data.loans&&!data.stock&&!data.settings)throw new Error('shape');setStatus('Loading backup…');let n=0;
+      for(const [id,b] of Object.entries(data.months||{}))if(/^\d{4}-\d{2}$/.test(id)){await db.doc('months/'+id).set(b);n++}
+      if(data.loans){for(const [id,b] of Object.entries(data.loans)){await db.doc('loans/'+id).set(b);n++}
+      for(const id of Object.keys(loans))if(!data.loans[id]){await db.doc('loans/'+id).delete();n++}}
+      if(data.stock){for(const [id,b] of Object.entries(data.stock)){await db.doc('stock/'+id).set(b);n++}
+      for(const id of Object.keys(stock))if(!data.stock[id]){await db.doc('stock/'+id).delete();n++}}
+      if(data.settings?.main){await db.doc('settings/main').set(data.settings.main);n++}setStatus(`Loaded ${n} records from the backup`)}
     catch(err){setStatus("That file couldn't be read. Use a moolah-data .json backup.",true)}});
 })();
 if('serviceWorker' in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
