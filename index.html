@@ -386,7 +386,7 @@ function balanceCheck(inc,out,dep,int,off=0){
     <p class="hint">${Math.abs(gap1)<1?'Balanced.':gap1>0?'Money left over that didn\'t go into savings: cash on hand, or spending not entered yet.':'You saved more than this period\'s income left over, so some deposits came from money you already had (your first balances count as deposits).'}</p></div>
   <div><span class="eyebrow">Tracker vs your actual total</span><div class="scroll"><table><tbody>
     ${row('Savings in the tracker (deposits + interest)',tracked)}
-    <tr><td class="name">Your actual money now</td><td>${numInput('actual-sav',A.amount,'data-f="actual" aria-label="Your actual savings total"')}</td></tr>
+    <tr><td class="name">Your real total (bank check)</td><td>${numInput('actual-sav',A.amount,'data-f="actual" aria-label="Your actual savings total"')}</td></tr>
     ${A.amount?row('Difference',gap2,Math.abs(gap2)<1?'pos':'neg',true):''}</tbody></table></div>
     <p class="hint">${!A.amount?'Type your real total across all accounts to compare.':Math.abs(gap2)<1?'Balanced.':gap2>0?'Your accounts hold more than the tracker shows. Update the latest month\'s balances and interest in Month to match.':'The tracker shows more than your accounts hold. Check the latest balances in Month.'}</p></div></div></section>`}
 function viewOverview(){
@@ -408,9 +408,13 @@ function viewOverview(){
     <div class="kpis">
       ${kpi('Income',fmt0(inc),`${ks.filter(k=>monthCalc(k).incA).length} months with income`)}
       ${kpi('Spent',fmt0(needs+wants+lend),`${fmt0(needs)} needs · ${fmt0(wants)} wants`+(lend?` · ${fmt0(lend)} lent out`:''))}
-      ${(()=>{const got=ks.reduce((s,k)=>s+collectedIn(k).reduce((t,x)=>t+x.amount,0),0),off=ks.reduce((s,k)=>s+offIn(k),0),net=inc+got+off-needs-wants-lend,A=settings.actualSavings;
-        if(!(A&&A.amount))return kpi('Income minus expenses',fmt0(net),`actual income${got?' plus loans collected':''} less needs, wants${lend?' and lending':''}. Type your actual money below to compare.`,net<0?'neg':'pos');
-        const gap=A.amount-net;return kpi('Money now (income − spent)',fmt(A.amount),`your actual money as of ${dayLabel(A.date)}`,'pos')+`<div class="kpi"><span class="eyebrow">Discrepancy</span><span class="v ${Math.abs(gap)<1?'pos':'neg'}">${Math.abs(gap)<1?fmt(0):(gap>0?'+':'')+fmt(gap)}</span><span class="s">${Math.abs(gap)<1?'income + collected − spending matches your actual money':`income ${fmt0(inc)} + ${fmt0(got)} collected${off?` + ${fmt0(off)} offset`:''} − ${fmt0(needs+wants+lend)} spent = ${fmt0(net)}; the rest is from missing records`}</span>${canWrite&&Math.abs(gap)>=1?`<button type="button" class="link" data-offset="${ks[0]}" data-gap="${r2(gap)}" style="justify-self:start;font-size:13px">Offset it in ${label(ks[0])}</button>`:''}</div>`})()}
+      ${(()=>{const got=ks.reduce((s,k)=>s+collectedIn(k).reduce((t,x)=>t+x.amount,0),0),off=ks.reduce((s,k)=>s+offIn(k),0),spent=needs+wants+lend,net=inc+int+got+off-spent,A=settings.actualSavings;
+        // Money now is calculated from what's tracked; the total you type is only a bank check
+        const parts=`income ${fmt0(inc)} + ${fmt0(int)} interest${got?` + ${fmt0(got)} collected from loans`:''}${off?` + ${fmt0(off)} unrecorded (offset)`:''} − ${fmt0(spent)} spent`;
+        const mk=kpi('Money now',fmt(net),parts,net<0?'neg':'pos');
+        if(!(A&&A.amount))return mk+kpi('Your real total','—','type your bank total in “Does it balance?” below to check it');
+        const gap=A.amount-net,ok=Math.abs(gap)<1;
+        return mk+kpi('Your real total (bank check)',fmt(A.amount),`what you typed on ${dayLabel(A.date)}`)+`<div class="kpi"><span class="eyebrow">Discrepancy</span><span class="v ${ok?'pos':'neg'}">${ok?fmt(0):(gap>0?'+':'')+fmt(gap)}</span><span class="s">${ok?'Money now matches your real total':gap>0?'your real total is higher: money in that isn\'t recorded':'your real total is lower: spending that isn\'t recorded'}</span>${canWrite&&!ok?`<button type="button" class="link" data-offset="${ks[0]}" data-gap="${r2(gap)}" style="justify-self:start;font-size:13px">Offset it in ${label(ks[0])}</button>`:''}</div>`})()}
       ${kpi('Saved',fmt0(dep),`plus ${fmt(int)} interest earned`)}
       ${kpi('Emergency Fund',fmt0(ef),`${pct(ef/goalOf('ef'))} of the ${short(goalOf('ef'))} goal`)}
     </div>
