@@ -1,19 +1,15 @@
 <!doctype html>
 <html lang="en">
-<link rel="icon" href="favicon.ico" sizes="any">
-<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
-<link rel="apple-touch-icon" href="apple-touch-icon.png">
-<link rel="manifest" href="manifest.webmanifest">
-<meta name="theme-color" content="#ffb8d3">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>MOOLAAAAAAH!!</title>
 <meta name="description" content="Personal expense tracker in Philippine peso: monthly budgets, savings goals, savings plan and lending.">
-<meta name="theme-color" content="#c94b85">
+<link rel="icon" href="favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="manifest" href="manifest.webmanifest">
-<link rel="icon" href="icons/icon-192.png">
-<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="theme-color" content="#ffb8d3">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -204,6 +200,7 @@ form.payform button{grid-column:1/-1}
 .addcat{display:flex;gap:6px;padding-top:8px}
 .addcat input{flex:1;min-width:0}
 .hint{font-size:13px;color:var(--muted)}
+.hh-fund{display:grid;gap:8px;margin-top:12px;padding:14px 16px;border:1px solid var(--line);border-radius:14px;background:var(--surface)}.hh-fund .stk-bar{height:14px}.hh-big{font-size:15px;margin-top:2px}.hh-big b{font:700 22px/1.2 var(--display)}
 @media (prefers-reduced-motion:no-preference){.bar i,.track i{transition:width .4s ease}}
 </style>
 </head>
@@ -229,7 +226,7 @@ form.payform button{grid-column:1/-1}
     <a href="#plan" data-v="plan"><span class="hide-sm">Savings plan</span><span class="show-sm">Plan</span></a>
     <a href="#lending" data-v="lending">Lending</a>
     <a href="#bigplans" data-v="bigplans"><span class="hide-sm">Sinking Funds</span><span class="show-sm">Sinking</span></a>
-    <a href="#stock" data-v="stock"><span class="hide-sm">Recurring purchases</span><span class="show-sm">Restock</span></a>
+    <a href="#stock" data-v="stock">Restock</a>
   </nav>
   <div class="modegrp"><span class="today" id="today"></span><button class="modebtn" id="modebtn" type="button" title="Switch between automatic (Philippine time), light and dark">Auto</button></div>
   <span class="status" id="status" aria-live="polite"></span>
@@ -307,7 +304,8 @@ function monthCalc(k){
   for(const s of SRC_KEYS){const r=d.income?.[s];if(r){incE+=r.expected||0;incA+=r.actual||0}}
   const g={};for(const G of GROUPS)g[G.id]={b:0,a:0};
   for(const c of cats()){const it=d.items?.[c.id];if(g[c.group]){g[c.group].b+=it?.budget||0;g[c.group].a+=catAct(k,c.id)}}
-  g.household.b=d.householdExp||0;g.household.a=d.household||0;
+  // from Nov 2026 the household contribution is someone else's money: kept out of your needs, income and Money now
+  g.household.b=hhSep(k)?0:d.householdExp||0;g.household.a=hhSep(k)?0:d.household||0;
   for(const x of lentIn(k))g.lending.a+=x.amount;
   const needs=GROUPS.filter(G=>G.kind==='needs').reduce((s,G)=>s+g[G.id].a,0);
   return {incE,incA,g,needs,wants:g.wants.a,lending:g.lending.a};
@@ -413,6 +411,7 @@ function viewOverview(){
     <div class="kpis">
       ${kpi('Income',fmt0(inc),`${ks.filter(k=>monthCalc(k).incA).length} months with income`)}
       ${kpi('Spent',fmt0(needs+wants+lend),`${fmt0(needs)} needs · ${fmt0(wants)} wants`+(lend?` · ${fmt0(lend)} lent out`:''))}
+      ${kpi('Income − spent',fmt(inc-needs-wants-lend),`${fmt0(inc)} income − ${fmt0(needs+wants+lend)} spent · before interest, loan collections and offset`,inc-needs-wants-lend<0?'neg':'pos')}
       ${(()=>{const got=ks.reduce((s,k)=>s+collectedIn(k).reduce((t,x)=>t+x.amount,0),0),off=ks.reduce((s,k)=>s+offIn(k),0),spent=needs+wants+lend,net=inc+int+got+off-spent,A=settings.actualSavings;
         // Money now is calculated from what's tracked; the total you type is only a bank check
         const parts=`income ${fmt0(inc)} + ${fmt0(int)} interest${got?` + ${fmt0(got)} collected from loans`:''}${off?` + ${fmt0(off)} unrecorded (offset)`:''} − ${fmt0(spent)} spent`;
@@ -526,7 +525,7 @@ function viewMonth(){
     <label>Note (optional)<input class="txt" id="log-note" placeholder="e.g. Grab to the clinic"></label>
     ${Object.keys(stock||{}).length?`<label>Restock item (optional)<select id="log-stk"><option value="">Not a restock item</option>${stkList().sort((a,b)=>a.it.name.localeCompare(b.it.name)).map(x=>`<option value="${x.id}">${x.it.icon||''} ${esc(x.it.name)} → ${esc(stkWhere(x.it).short)}</option>`).join('')}</select></label>`:''}
     <button class="primary" type="submit">Add to ${MN[+k.slice(5)-1]}</button>
-  </form><p class="hint">Adds the amount to that category's Actual for ${label(k)} and writes a line in your notes. Pick a restock item and it's saved as a purchase in Recurring purchases too, counted in that item's category (household items go to Household contribution).</p></section>`:''}
+  </form><p class="hint">Adds the amount to that category's Actual for ${label(k)} and writes a line in your notes. Pick a restock item and it's saved as a purchase in Restock too, counted in that item's category (household items go to Household contribution).</p></section>`:''}
   <div class="grid2">
     <section class="panel"><h3>Income</h3>
       <div class="scroll"><table><thead><tr><th>Source</th><th>Expected</th><th>Actual</th><th>Difference</th></tr></thead><tbody>
@@ -972,7 +971,7 @@ function migrateSettings4(){
   if(P&&P.rules)P.rules=P.rules.map(r=>r.replace(/Big Plans Fund/g,'Sinking Funds'));settings.mig=4;saveSettings()}
 
 
-// ---------- recurring purchases: when each item was bought, how long it lasts, when to buy again ----------
+// ---------- restock: when each item was bought, how long it lasts, when to buy again ----------
 const STK_CATS=[['personal','Personal care','💆‍♀️'],['toiletries','Toiletries','🧻'],['supplements','Supplements','💪'],['household','Household & pantry','🏠'],['other','Other','✨']];
 const STK_ICONS=['🧴','🧼','🫧','🪥','🧻','🌸','💆‍♀️','💇‍♀️','🧽','🧺','🍽️','🍚','☕','🥛','🍳','🫙','🥫','🧂','💪','💊','🐾','🏠','✨'];
 let stkEdit=null,stkBuy=null,stkDel=null,rsCache=null,stkOnly=false;
@@ -997,21 +996,30 @@ function stkRecordBuy(id,date,price){const it=stock[id],x=stkInfo(it);
 // ---------- household contribution: your share for the house; Household & pantry restocks are paid from it ----------
 function hhMonth(k){const d=months[k]||{},rs=rsIn(k,'@household');return {exp:d.householdExp||0,act:d.household||0,charged:rs.total,list:rs.list,left:(d.household||0)-rs.total}}
 function hhPanel(k){const h=hhMonth(k),df=h.act-h.exp;
-  return `<section class="panel"><div class="row" style="justify-content:space-between"><h3><span class="sw" style="background:var(--s8);margin-right:8px"></span>Needs — Household Contribution</h3><span class="muted">${fmt(h.act)} of ${fmt(h.exp)} expected</span></div>
+  return `<section class="panel"><div class="row" style="justify-content:space-between"><h3><span class="sw" style="background:var(--s8);margin-right:8px"></span>${hhSep(k)?'Household fund (separate)':'Needs — Household Contribution'}</h3><span class="muted">${fmt(h.act)} of ${fmt(h.exp)} expected</span></div>
     <div class="scroll"><table><thead><tr><th></th><th>Expected</th><th>Actual</th><th>Difference</th></tr></thead><tbody>
-    <tr><td class="name">Your contribution<br><span class="muted" style="font-size:12px">counts in Needs</span></td><td>${numInput('hhe',h.exp,'data-f="month" data-c="householdExp" aria-label="Expected household contribution"')}</td><td>${numInput('hh',h.act,'data-f="month" data-c="household" aria-label="Actual household contribution"')}</td><td class="${df<0?'neg':''}">${h.exp||h.act?fmt(df):''}</td></tr>
+    <tr><td class="name">${hhSep(k)?'Contribution received':'Your contribution'}<br><span class="muted" style="font-size:12px">${hhSep(k)?'from the household · not your income or spending':'counts in Needs'}</span></td><td>${numInput('hhe',h.exp,'data-f="month" data-c="householdExp" aria-label="Expected household contribution"')}</td><td>${numInput('hh',h.act,'data-f="month" data-c="household" aria-label="Actual household contribution"')}</td><td class="${df<0?'neg':''}">${h.exp||h.act?fmt(df):''}</td></tr>
     </tbody></table></div>
     <div class="hh-box"><div class="row" style="justify-content:space-between"><b>🏠 Paid from it: Household & pantry restocks</b><span>${fmt(h.charged)}</span></div>
-    ${h.list.length?`<div class="scroll"><table><tbody>${h.list.sort((a,b)=>a.date.localeCompare(b.date)).map(p=>`<tr><td class="name">${p.icon||''} ${esc(p.name)}</td><td class="muted">${dayLabel(p.date)}</td><td>${fmt(p.amount)}</td></tr>`).join('')}</tbody></table></div>`:`<p class="hint" style="margin:4px 0 0">${k<STK_SYNC_FROM?`Restocks are tracked here from ${label(STK_SYNC_FROM)}.`:'No household restocks bought this month yet. Tap 🛒 Bought in Recurring purchases.'}</p>`}
-    <div class="row" style="justify-content:space-between;border-top:1px solid var(--line);padding-top:8px;margin-top:6px"><b>Left in the household contribution</b><b class="${h.left<0?'neg':'pos'}">${fmt(h.left)}</b></div></div>
-    <p class="hint">Only your contribution counts as your spending. Household & pantry restocks come out of it, so they don't count a second time.${h.left<0?' Restocks went over the contribution this month.':''}</p></section>`}
+    ${h.list.length?`<div class="scroll"><table><tbody>${h.list.sort((a,b)=>a.date.localeCompare(b.date)).map(p=>`<tr><td class="name">${p.icon||''} ${esc(p.name)}</td><td class="muted">${dayLabel(p.date)}</td><td>${fmt(p.amount)}</td></tr>`).join('')}</tbody></table></div>`:`<p class="hint" style="margin:4px 0 0">${k<STK_SYNC_FROM?`Restocks are tracked here from ${label(STK_SYNC_FROM)}.`:'No household restocks bought this month yet. Tap 🛒 Bought in Restock.'}</p>`}
+    <div class="row" style="justify-content:space-between;border-top:1px solid var(--line);padding-top:8px;margin-top:6px"><b>Left in the household ${hhSep(k)?'fund':'contribution'}</b><b class="${h.left<0?'neg':'pos'}">${fmt(h.left)}</b></div></div>
+    <p class="hint">${hhSep(k)?'This money comes from another person, so it stays out of your income, spending and Money now. Household & pantry restocks are paid from it.':'Only your contribution counts as your spending. Household & pantry restocks come out of it, so they don\'t count a second time.'}${h.left<0?' Restocks went over the contribution this month.':''}</p></section>`}
 function hhDash(ks){const rows=ks.map(k=>({k,...hhMonth(k)})).filter(r=>r.exp||r.act||r.charged);if(!rows.length)return '';
   const T=rows.reduce((s,r)=>({exp:s.exp+r.exp,act:s.act+r.act,charged:s.charged+r.charged,left:s.left+r.left}),{exp:0,act:0,charged:0,left:0});
   return `<section class="panel"><div class="row" style="justify-content:space-between"><h3><span class="sw" style="background:var(--s8);margin-right:8px"></span>Household contribution</h3><span class="muted">${fmt0(T.act)} of ${fmt0(T.exp)} expected</span></div>
-    <div class="kpis mini">${kpi('Expected',fmt0(T.exp),'what you planned to give')}${kpi('Contributed',fmt0(T.act),'counts in your Needs',T.act<T.exp?'neg':'')}${kpi('Restocks paid from it',fmt0(T.charged),'Household & pantry, not your spending')}${kpi('Left in it',fmt0(T.left),'contribution − restocks',T.left<0?'neg':'pos')}</div>
+    <div class="kpis mini">${kpi('Expected',fmt0(T.exp),'what you planned to give')}${kpi('Contributed',fmt0(T.act),`counts in Needs only before ${label(HH_SEP)}`,T.act<T.exp?'neg':'')}${kpi('Restocks paid from it',fmt0(T.charged),'Household & pantry, not your spending')}${kpi('Left in it',fmt0(T.left),'contribution − restocks',T.left<0?'neg':'pos')}</div>
     <div class="scroll"><table><thead><tr><th>Month</th><th>Expected</th><th>Actual</th><th>Difference</th><th>Restocks</th><th>Left</th></tr></thead><tbody>
     ${rows.map(r=>`<tr class="link" data-goto="${r.k}" tabindex="0"><td>${label(r.k)}</td><td>${fmt(r.exp)}</td><td>${fmt(r.act)}</td><td class="${r.act-r.exp<0?'neg':''}">${fmt(r.act-r.exp)}</td><td>${fmt(r.charged)}</td><td class="${r.left<0?'neg':''}">${fmt(r.left)}</td></tr>`).join('')}
-    </tbody></table></div><p class="hint">Restocks are charged here from ${label(STK_SYNC_FROM)}. Type the expected and actual amounts in Month › Household Contribution.</p></section>`}
+    </tbody></table></div><p class="hint">Restocks are charged here from ${label(STK_SYNC_FROM)}. Type the expected and actual amounts in Month › Household. From ${label(HH_SEP)} it's a separate fund from another person and isn't counted as your money.</p></section>`}
+const HH_SEP='2026-11',hhSep=k=>k>=HH_SEP;
+// running totals of the separate household fund: contributions in, Household & pantry restocks out
+function hhFund(){const ks=KEYS.filter(k=>k>=HH_SEP&&(k<=NOWKEY||months[k]?.household||rsIn(k,'@household').total));let exp=0,act=0,spent=0;
+  for(const k of ks){const h=hhMonth(k);exp+=h.exp;act+=h.act;spent+=h.charged}return {exp,act,spent,left:act-spent,ks}}
+function hhFundBox(){const F=hhFund(),cur=hhMonth(NOWKEY),p=F.act?F.spent/F.act:F.spent?2:0,over=F.spent>F.act;
+  return `<div class="hh-fund"><div class="row" style="justify-content:space-between;gap:8px"><div><span class="eyebrow">🏠 Household fund · since ${label(HH_SEP)}</span><div class="hh-big"><b class="${over?'neg':''}">${fmt(F.spent)}</b> <span class="muted">spent of ${fmt(F.act)} contributed</span></div></div><b class="${F.left<0?'neg':'pos'}" style="font:700 20px var(--display)">${fmt(F.left)} left</b></div>
+    <div class="stk-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(Math.min(p,1)*100)}" aria-label="Household fund used"><i style="width:${Math.min(Math.max(p,0),1)*100}%;background:var(${over?'--over':p>.85?'--s4':'--s8'})"></i></div>
+    <div class="row" style="justify-content:space-between;gap:8px;font-size:13px"><span class="muted">${label(NOWKEY)}: ${fmt(cur.act)} in${cur.exp?` of ${fmt(cur.exp)} expected`:''} · ${fmt(cur.charged)} spent</span><a href="#month" data-hhgo="${NOWKEY}">Update the contribution</a></div>
+    <span class="hint">A contribution from the household, not your money: from ${label(HH_SEP)} it isn't counted in your income, spending or Money now. Only Household & pantry restocks are paid from it.</span></div>`}
 const DAYMS=86400000,dms=d=>Date.UTC(+d.slice(0,4),+d.slice(5,7)-1,+d.slice(8,10)),addDays=(d,n)=>new Date(dms(d)+n*DAYMS).toISOString().slice(0,10);
 function stkInfo(it){const ps=(it.purchases||[]).filter(x=>x.date).slice().sort((a,b)=>a.date.localeCompare(b.date)),last=ps[ps.length-1];
   const price=last?.price??it.price??0;let lasts=it.lastsDays||0;
@@ -1054,9 +1062,10 @@ function viewStock(){
       :canWrite?`<div class="row" style="gap:8px"><button type="button" data-stkbuyask="${x.id}">🛒 Bought</button>${x.last&&!x.last.until?`<button type="button" class="link" data-stkran="${x.id}">Ran out today</button>`:''}<button type="button" class="link" data-stkeditask="${x.id}" style="margin-left:auto">Edit</button></div>`:''}
   </section>`};
   return `
-  <section><div><span class="eyebrow">Recurring purchases</span><h2>${fmt0(yearly/12)} a month for restocks</h2></div>
+  <section><div><span class="eyebrow">Restock</span><h2>${fmt0(yearly/12)} a month for restocks</h2></div>
     <p class="hint" style="margin:4px 0 0">Each item tracks when you bought it, how long it lasts and when to buy again. Budgets come from price ÷ how long it lasts.</p>
-    <div class="flow-key"><span><b>📒 Your spending</b> Personal care, toiletries and supplements count in their Month category (Skincare, Hair Care, Hygiene & Toiletries, Gym Supplement) and in your budget.</span><span><b>🏠 Household money</b> Household & pantry is paid from your Household contribution, so it doesn't count again as your spending.</span><span class="muted">Synced from ${label(STK_SYNC_FROM)}. Tap 🛒 Bought here or pick the item in Month › Log a purchase; either way it shows in both places.</span></div>
+    ${hhFundBox()}
+    <div class="flow-key"><span><b>📒 Your spending</b> Personal care, toiletries and supplements count in their Month category (Skincare, Hair Care, Hygiene & Toiletries, Gym Supplement) and in your budget.</span><span><b>🏠 Household money</b> Household & pantry is paid from the Household fund (a contribution from the household), so it isn't your spending.</span><span class="muted">Synced from ${label(STK_SYNC_FROM)}. Tap 🛒 Bought here or pick the item in Month › Log a purchase; either way it shows in both places.</span></div>
     <div class="kpis">
       ${kpi('Yearly budget',fmt0(yearly),`${yLbl} · ${L.filter(x=>x.price&&x.lasts).length} of ${L.length} items priced`)}
       ${kpi('Monthly budget',fmt0(yearly/12),'average across the year')}
@@ -1097,6 +1106,7 @@ function wireStock(){if(view!=='stock')return;
   const on=(sel,fn)=>app.querySelectorAll(sel).forEach(b=>b.addEventListener('click',()=>fn(b)));
   on('[data-stksoon]',()=>{stkOnly=true;render();document.getElementById('stk-soon')?.scrollIntoView({behavior:'smooth',block:'start'})});
   on('[data-stkall]',()=>{stkOnly=false;render()});
+  app.querySelectorAll('[data-hhgo]').forEach(a=>a.addEventListener('click',()=>{curMonth=a.dataset.hhgo}));
   on('[data-stkbuyask]',b=>{stkBuy=b.dataset.stkbuyask;stkEdit=null;render()});
   on('[data-stkeditask]',b=>{stkEdit=b.dataset.stkeditask;stkBuy=null;stkDel=null;render()});
   on('[data-stkcancel]',()=>{stkBuy=stkEdit=stkDel=null;render()});
