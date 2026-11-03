@@ -1,5 +1,5 @@
 // Keeps the app opening offline: pages network-first, everything else cache-first.
-const CACHE = 'moolah-v32';
+const CACHE = 'moolah-v33';
 const SHELL = ['./', 'index.html', 'config.js', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png', 'apple-touch-icon.png', 'favicon.ico'];
 
 self.addEventListener('install', e => {
